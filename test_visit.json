@@ -1,0 +1,16 @@
+{
+  "visit_id": "VIS006",
+  "patient_id": "PAT006",
+  "visit_date": "2025-09-29T15:30:00",
+  "visit_type": "routine",
+  "chief_complaint": "Routine prenatal check-up - 28 weeks",
+  "symptoms": "Mild back pain, occasional heartburn, fetal movement active",
+  "diagnosis": "Normal pregnancy at 28 weeks gestation",
+  "treatment_plan": "Continue prenatal vitamins, glucose tolerance test ordered",
+  "medications_prescribed": "Continue current prenatal vitamins",
+  "follow_up_instructions": "Return in 2 weeks, glucose screening results review",
+  "doctor_notes": "Fundal height appropriate for gestational age. Fetal heart rate 145 bpm. Patient reports good fetal movement. Discussed nutrition and exercise.",
+  "vital_signs": "{\"blood_pressure_systolic\": 118, \"blood_pressure_diastolic\": 75, \"heart_rate\": 88, \"temperature\": 98.4, \"weight\": 145, \"height\": 64, \"fundal_height\": 28}",
+  "lab_results": "[{\"test_name\": \"Glucose tolerance test\", \"value\": \"Pending\", \"status\": \"pending\"}, {\"test_name\": \"Hemoglobin\", \"value\": \"11.8\", \"unit\": \"g/dL\", \"status\": \"normal\"}, {\"test_name\": \"Urine protein\", \"value\": \"Negative\", \"status\": \"normal\"}]",
+  "duration_minutes": 30
+}

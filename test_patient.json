@@ -1,0 +1,14 @@
+{
+  "patient_id": "PAT006",
+  "first_name": "Maria",
+  "last_name": "Rodriguez",
+  "date_of_birth": "1990-08-14",
+  "gender": "Female",
+  "phone": "(555) 678-9012",
+  "email": "maria.rodriguez@email.com",
+  "address": "987 Sunset Blvd, San Francisco, CA 94122",
+  "emergency_contact": "Carlos Rodriguez (Husband) - (555) 678-9013",
+  "medical_history": "Gestational diabetes 2018, Otherwise healthy",
+  "allergies": "No known allergies",
+  "current_medications": "Prenatal vitamins daily"
+}
