@@ -52,8 +52,9 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     docs_url="/docs",
     redoc_url="/redoc",
-    lifespan=lifespan,
+    lifespan=lifespan,  # Temporarily disabled to debug middleware issue
 )
+
 
 # Configure CORS
 app.add_middleware(

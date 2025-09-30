@@ -79,9 +79,11 @@ class VisitService:
 
     async def get_visit_by_visit_id(self, visit_id: str) -> Optional[VisitResponse]:
         """Get a visit by visit ID."""
+        print("The visit id is:", visit_id)
         query = select(Visit).where(Visit.visit_id == visit_id)
         result = await self.db.execute(query)
         visit = result.scalar_one_or_none()
+        print("The visit fetched is:", visit)
 
         if visit:
             return self._convert_to_response(visit)

@@ -85,21 +85,35 @@ try:
         patients.router, prefix="/patients", tags=["patients"])
     api_router.include_router(visits.router, prefix="/visits", tags=["visits"])
 
-    # Only include AI agents if we have API key
+    # Only include AI agents if we have at least one API key
+    ai_keys_available = []
     if (settings.OPENAI_API_KEY and
         settings.OPENAI_API_KEY != "your-openai-api-key" and
             not settings.OPENAI_API_KEY.startswith("dummy")):
+        ai_keys_available.append("OpenAI")
+
+    if (settings.XAI_API_KEY and
+            settings.XAI_API_KEY != "your-xai-api-key-here"):
+        ai_keys_available.append("X.AI")
+
+    if (settings.ANTHROPIC_API_KEY and
+            settings.ANTHROPIC_API_KEY != "your-anthropic-api-key"):
+        ai_keys_available.append("Anthropic")
+
+    if ai_keys_available:
         try:
-            from app.api.v1.endpoints import agents
+            from app.api.v1.endpoints import agents_fallback as agents
             api_router.include_router(
                 agents.router, prefix="/ai", tags=["ai-agents"])
             ai_enabled = True
+            logger.info(
+                f"AI features enabled with providers: {', '.join(ai_keys_available)}")
         except Exception as e:
             logger.warning(
                 "AI features disabled - API import issue", error=str(e))
             ai_enabled = False
     else:
-        logger.info("AI features disabled - no valid API key")
+        logger.info("AI features disabled - no valid API keys found")
         ai_enabled = False
 
     app.include_router(api_router, prefix=settings.API_V1_STR)

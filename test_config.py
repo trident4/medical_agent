@@ -24,17 +24,13 @@ print(f"API_V1_STR: {settings.API_V1_STR}")
 # Check API keys (masked for security)
 openai_key = settings.OPENAI_API_KEY
 if openai_key:
-    masked_key = openai_key[:10] + "..." + \
-        openai_key[-4:] if len(openai_key) > 14 else "***"
-    print(f"OPENAI_API_KEY: {masked_key} (length: {len(openai_key)})")
+    print(f"OPENAI_API_KEY: ✅ Set (length: {len(openai_key)})")
 else:
     print("OPENAI_API_KEY: ❌ Not set or empty")
 
 anthropic_key = settings.ANTHROPIC_API_KEY
 if anthropic_key and anthropic_key != "your-anthropic-api-key":
-    masked_key = anthropic_key[:10] + "..." + \
-        anthropic_key[-4:] if len(anthropic_key) > 14 else "***"
-    print(f"ANTHROPIC_API_KEY: {masked_key}")
+    print(f"ANTHROPIC_API_KEY: ✅ Set (length: {len(anthropic_key)})")
 else:
     print("ANTHROPIC_API_KEY: ❌ Not set or placeholder")
 

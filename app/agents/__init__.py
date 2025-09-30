@@ -1,16 +1,14 @@
 """
-AI Agents package initialization.
+AI Agents package initialization - Fallback System.
 """
 
-from .summarizer import summarize_visit, summarize_multiple_visits, summarizer_agent
-from .qa_agent import answer_question, get_patient_insights, compare_visits, qa_agent
+# Import fallback agents that handle multiple AI providers
+from .qa_agent_fallback import medical_qa_agent
+from .summarizer_fallback import visit_summarizer
+from .base_agent import FallbackAgent
 
 __all__ = [
-    "summarize_visit",
-    "summarize_multiple_visits",
-    "summarizer_agent",
-    "answer_question",
-    "get_patient_insights",
-    "compare_visits",
-    "qa_agent",
+    "medical_qa_agent",
+    "visit_summarizer",
+    "FallbackAgent"
 ]

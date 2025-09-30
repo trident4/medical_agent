@@ -26,6 +26,7 @@ class Settings(BaseSettings):
 
     # AI Configuration
     OPENAI_API_KEY: str = ""
+    XAI_API_KEY: str = ""
     ANTHROPIC_API_KEY: str = ""
 
     # CORS
