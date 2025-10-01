@@ -18,7 +18,7 @@ from app.models.schemas import (
 from app.services.visit_service import VisitService
 from app.services.patient_service import PatientService
 from app.agents.summarizer_fallback import visit_summarizer
-from app.agents.qa_agent_fallback import medical_qa_agent
+from app.agents.qa_agent import medical_qa_agent
 from datetime import datetime
 import structlog
 
@@ -102,6 +102,8 @@ async def ask_question_endpoint(
     """
     Ask questions about patient data and get AI-powered answers.
     """
+
+    print("Inside Asking question...", db, request.question)
     try:
         visit_service = VisitService(db)
         patient_service = PatientService(db)
@@ -129,12 +131,14 @@ async def ask_question_endpoint(
             # Get recent data for general questions
             patients = await patient_service.get_patients(skip=0, limit=50)
             visits = await visit_service.get_visits(skip=0, limit=100)
-
+        print("The patients and visits fetched are:", patients, visits)
         # Generate answer using AI fallback system (X.AI -> OpenAI -> Anthropic)
-        context_info = f"Patient ID: {request.patient_id}, Visit ID: {request.visit_id}"
         qa_result = await medical_qa_agent.answer_question(
             question=request.question,
-            context=context_info
+            patient_id=request.patient_id,
+            visit_id=request.visit_id,
+            patients=patients,
+            visits=visits
         )
 
         # Log the Q&A request
@@ -150,7 +154,8 @@ async def ask_question_endpoint(
         return QuestionAnswerResponse(
             question=request.question,
             answer=qa_result,  # fallback agent returns string
-            sources=["AI-generated via fallback system"],
+            sources=[{"type": "ai_analysis",
+                      "content": "AI-generated via fallback system"}],
             confidence_score=0.8,  # Default confidence
             context_used="Patient and visit data",
             generated_at=datetime.utcnow()
@@ -193,10 +198,11 @@ async def get_health_summary_endpoint(
         )
 
         # Generate insights using AI fallback system (X.AI -> OpenAI -> Anthropic)
-        context_info = f"Patient: {patient.first_name} {patient.last_name}, Recent visits: {len(visits)}"
         insights = await medical_qa_agent.answer_question(
             question=f"Provide a comprehensive health summary for patient {patient.first_name} {patient.last_name}",
-            context=context_info
+            patient_id=request.patient_id,
+            patients=[patient],
+            visits=visits
         )
 
         # Parse insights (this would be more sophisticated in a real implementation)
@@ -222,7 +228,7 @@ async def get_health_summary_endpoint(
             risk_factors=risk_factors,
             recommendations=recommendations,
             recent_visits_count=len(visits),
-            last_visit_date=visits[0].visit_date if visits else None,
+            last_visit_date=visits[0]["visit_date"] if visits else None,
             generated_at=datetime.utcnow()
         )
 
@@ -265,10 +271,9 @@ async def compare_visits_endpoint(
             )
 
         # Generate comparison using AI fallback system (X.AI -> OpenAI -> Anthropic)
-        context_info = f"Comparing visit {visit_id_1} vs {visit_id_2}"
         comparison = await medical_qa_agent.answer_question(
             question=f"Compare these two visits and identify changes, trends, and recommendations: Visit 1: {visit1.diagnosis}, Visit 2: {visit2.diagnosis}",
-            context=context_info
+            visits=[visit1, visit2]
         )
 
         # Log the comparison request

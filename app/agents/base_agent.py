@@ -112,6 +112,8 @@ class FallbackAgent:
                 # In newer versions, result might be a RunResult object
                 if hasattr(result, 'data'):
                     return str(result.data)
+                elif hasattr(result, 'output'):
+                    return str(result.output)
                 elif hasattr(result, 'content'):
                     return str(result.content)
                 elif hasattr(result, 'message'):

@@ -89,56 +89,32 @@ class MedicalQAAgent:
         # Build context information
         context_parts = [f"Question: {question}"]
 
-        def safe_get_attr(obj, attr_name, default="Unknown"):
-            """Safely get attribute from either dict or object."""
-            if hasattr(obj, attr_name):
-                return getattr(obj, attr_name, default)
-            elif isinstance(obj, dict):
-                return obj.get(attr_name, default)
-            else:
-                return default
-
         if patients:
             context_parts.append("Patient Information:")
             # Limit to 5 patients to avoid token limits
             for patient in patients[:5]:
-                first_name = safe_get_attr(patient, 'first_name')
-                last_name = safe_get_attr(patient, 'last_name')
-                date_of_birth = safe_get_attr(patient, 'date_of_birth')
-                medical_history = safe_get_attr(
-                    patient, 'medical_history', None)
-                allergies = safe_get_attr(patient, 'allergies', None)
-                current_medications = safe_get_attr(
-                    patient, 'current_medications', None)
-
                 context_parts.append(
-                    f"- Patient {first_name} {last_name} (DOB: {date_of_birth})")
-                if medical_history:
+                    f"- Patient {patient.first_name} {patient.last_name} (DOB: {patient.date_of_birth})")
+                if patient.medical_history:
                     context_parts.append(
-                        f"  Medical History: {medical_history}")
-                if allergies:
-                    context_parts.append(f"  Allergies: {allergies}")
-                if current_medications:
+                        f"  Medical History: {patient.medical_history}")
+                if patient.allergies:
+                    context_parts.append(f"  Allergies: {patient.allergies}")
+                if patient.current_medications:
                     context_parts.append(
-                        f"  Current Medications: {current_medications}")
+                        f"  Current Medications: {patient.current_medications}")
 
         if visits:
             context_parts.append("Visit Information:")
             for visit in visits[:10]:  # Limit to 10 visits
-                visit_date = safe_get_attr(visit, 'visit_date')
-                visit_type = safe_get_attr(visit, 'visit_type')
-                chief_complaint = safe_get_attr(
-                    visit, 'chief_complaint', 'N/A')
-                diagnosis = safe_get_attr(visit, 'diagnosis', 'N/A')
-                treatment_plan = safe_get_attr(visit, 'treatment_plan', 'N/A')
-                doctor_notes = safe_get_attr(visit, 'doctor_notes', None)
-
-                context_parts.append(f"- Visit {visit_date} ({visit_type})")
-                context_parts.append(f"  Chief Complaint: {chief_complaint}")
-                context_parts.append(f"  Diagnosis: {diagnosis}")
-                context_parts.append(f"  Treatment: {treatment_plan}")
-                if doctor_notes:
-                    context_parts.append(f"  Notes: {doctor_notes}")
+                context_parts.append(
+                    f"- Visit {visit.visit_date} ({visit.visit_type})")
+                context_parts.append(
+                    f"  Chief Complaint: {visit.chief_complaint}")
+                context_parts.append(f"  Diagnosis: {visit.diagnosis}")
+                context_parts.append(f"  Treatment: {visit.treatment_plan}")
+                if visit.doctor_notes:
+                    context_parts.append(f"  Notes: {visit.doctor_notes}")
 
         context_parts.append(
             "\nPlease answer the question based on the provided medical data. Be specific about which information you're referencing and provide appropriate sources.")
