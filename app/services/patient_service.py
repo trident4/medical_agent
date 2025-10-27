@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, or_
 from sqlalchemy.orm import selectinload
 from app.models.patient import Patient, PatientCreate, PatientUpdate, PatientResponse, PatientSummary
+from app.utils import calculate_age
 from app.models.visit import Visit
 from datetime import datetime, date
 
@@ -34,7 +35,7 @@ class PatientService:
             visit_count, last_visit = visit_result.first()
 
             # Calculate age
-            age = (datetime.now().date() - patient.date_of_birth).days // 365
+            age = calculate_age(patient.date_of_birth)
 
             summary = PatientSummary(
                 id=patient.id,
@@ -137,7 +138,7 @@ class PatientService:
             visit_result = await self.db.execute(visit_query)
             visit_count, last_visit = visit_result.first()
 
-            age = (datetime.now().date() - patient.date_of_birth).days // 365
+            age = calculate_age(patient.date_of_birth)
 
             summary = PatientSummary(
                 id=patient.id,
@@ -182,20 +183,6 @@ class PatientService:
             for visit in visits
         ]
 
-    # Replace the age calculation in get_patients and search_patients methods:
-    def calculate_age(self, birth_date: date) -> int:
-        """Calculate age from birth date."""
-        today = date.today()
-
-        # Calculate age
-        age = today.year - birth_date.year
-
-        # Adjust age if birthday hasn't occurred this year
-        if today.month < birth_date.month or (today.month == birth_date.month and today.day < birth_date.day):
-            age -= 1
-
-        return max(0, age)  # Ensure age is not negative
-
     async def get_patient_health_summary(self, patient_id: str, recent_visits_count: int = 5) -> dict:
         """Get a comprehensive health summary for a patient."""
         patient = await self.get_patient_by_patient_id(patient_id)
@@ -205,9 +192,8 @@ class PatientService:
         visits = await self.get_patient_visits(patient_id, limit=recent_visits_count)
 
         # Calculate age
-        # age = (datetime.now().date() - patient.date_of_birth).days // 365
-        print("The age", patient.date_of_birth.year, datetime.now().date())
-        age = self.calculate_age(patient.date_of_birth)
+
+        age = calculate_age(patient.date_of_birth)
 
         return {
             "patient": {
