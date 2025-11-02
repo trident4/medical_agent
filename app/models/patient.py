@@ -17,7 +17,7 @@ class Patient(Base):
     __tablename__ = "patients"
 
     id = Column(Integer, primary_key=True, index=True)
-    patient_id = Column(String(50), unique=True, index=True, nullable=False)
+    patient_id = Column(String(50), unique=True, index=True, nullable=True)
     first_name = Column(String(100), nullable=False)
     last_name = Column(String(100), nullable=False)
     date_of_birth = Column(Date, nullable=False)
@@ -41,7 +41,7 @@ class Patient(Base):
 class PatientBase(BaseModel):
     """Base patient schema."""
 
-    patient_id: str = Field(..., description="Unique patient identifier")
+    # patient_id: str = Field(..., description="Unique patient identifier")
     first_name: str = Field(..., min_length=1, max_length=100)
     last_name: str = Field(..., min_length=1, max_length=100)
     date_of_birth: datetime

@@ -73,9 +73,10 @@ class PatientService:
         """Create a new patient."""
         db_patient = Patient(**patient.model_dump())
         self.db.add(db_patient)
+        await self.db.flush()  # Ensure ID is generated
+        db_patient.patient_id = f"PAT{db_patient.id:06d}"
         await self.db.commit()
         await self.db.refresh(db_patient)
-
         return PatientResponse.model_validate(db_patient)
 
     async def update_patient(self, patient_id: str, patient_update: PatientUpdate) -> PatientResponse:

@@ -46,12 +46,12 @@ async def create_patient(
     patient_service = PatientService(db)
 
     # Check if patient ID already exists
-    existing_patient = await patient_service.get_patient_by_patient_id(patient.patient_id)
-    if existing_patient:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Patient with ID {patient.patient_id} already exists"
-        )
+    # existing_patient = await patient_service.get_patient_by_patient_id(patient.patient_id)
+    # if existing_patient:
+    #     raise HTTPException(
+    #         status_code=400,
+    #         detail=f"Patient with ID {patient.patient_id} already exists"
+    #     )
 
     created_patient = await patient_service.create_patient(patient)
     return created_patient
