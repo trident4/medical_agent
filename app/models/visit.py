@@ -17,7 +17,7 @@ class Visit(Base):
     __tablename__ = "visits"
 
     id = Column(Integer, primary_key=True, index=True)
-    visit_id = Column(String(50), unique=True, index=True, nullable=False)
+    visit_id = Column(String(50), unique=True, index=True, nullable=True)
     patient_id = Column(Integer, ForeignKey("patients.id"), nullable=False)
     visit_date = Column(DateTime, nullable=False)
     # routine, emergency, follow-up, etc.
@@ -67,7 +67,7 @@ class LabResult(BaseModel):
 class VisitBase(BaseModel):
     """Base visit schema."""
 
-    visit_id: str = Field(..., description="Unique visit identifier")
+    # visit_id: str = Field(..., description="Unique visit identifier")
     patient_id: int = Field(..., description="Patient ID")
     visit_date: datetime
     visit_type: str = Field(..., description="Type of visit")

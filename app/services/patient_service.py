@@ -179,7 +179,10 @@ class PatientService:
                 "visit_date": visit.visit_date,
                 "visit_type": visit.visit_type,
                 "chief_complaint": visit.chief_complaint,
-                "diagnosis": visit.diagnosis
+                "diagnosis": visit.diagnosis,
+                "duration_minutes": visit.duration_minutes,
+                "vital_signs": visit.vital_signs,
+                "doctor_notes": visit.doctor_notes
             }
             for visit in visits
         ]

@@ -42,12 +42,12 @@ async def create_visit(
     visit_service = VisitService(db)
 
     # Check if visit ID already exists
-    existing_visit = await visit_service.get_visit_by_visit_id(visit.visit_id)
-    if existing_visit:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Visit with ID {visit.visit_id} already exists"
-        )
+    # existing_visit = await visit_service.get_visit_by_visit_id(visit.visit_id)
+    # if existing_visit:
+    #     raise HTTPException(
+    #         status_code=400,
+    #         detail=f"Visit with ID {visit.visit_id} already exists"
+    #     )
 
     created_visit = await visit_service.create_visit(visit)
     return created_visit

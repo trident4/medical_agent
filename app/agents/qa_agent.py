@@ -131,12 +131,14 @@ class MedicalQAAgent:
                     visit, 'chief_complaint', 'N/A')
                 diagnosis = safe_get_attr(visit, 'diagnosis', 'N/A')
                 treatment_plan = safe_get_attr(visit, 'treatment_plan', 'N/A')
+                vital_signs = safe_get_attr(visit, 'vital_signs', 'N/A')
                 doctor_notes = safe_get_attr(visit, 'doctor_notes', None)
 
                 context_parts.append(f"- Visit {visit_date} ({visit_type})")
                 context_parts.append(f"  Chief Complaint: {chief_complaint}")
                 context_parts.append(f"  Diagnosis: {diagnosis}")
                 context_parts.append(f"  Treatment: {treatment_plan}")
+                context_parts.append(f"  Vital Signs: {vital_signs}")
                 if doctor_notes:
                     context_parts.append(f"  Notes: {doctor_notes}")
 
