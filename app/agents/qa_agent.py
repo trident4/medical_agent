@@ -131,19 +131,45 @@ class MedicalQAAgent:
                     visit, 'chief_complaint', 'N/A')
                 diagnosis = safe_get_attr(visit, 'diagnosis', 'N/A')
                 treatment_plan = safe_get_attr(visit, 'treatment_plan', 'N/A')
-                vital_signs = safe_get_attr(visit, 'vital_signs', 'N/A')
+                vital_signs = safe_get_attr(visit, 'vital_signs', None)
+                lab_results = safe_get_attr(visit, 'lab_results', None)
                 doctor_notes = safe_get_attr(visit, 'doctor_notes', None)
 
                 context_parts.append(f"- Visit {visit_date} ({visit_type})")
                 context_parts.append(f"  Chief Complaint: {chief_complaint}")
                 context_parts.append(f"  Diagnosis: {diagnosis}")
                 context_parts.append(f"  Treatment: {treatment_plan}")
-                context_parts.append(f"  Vital Signs: {vital_signs}")
+
+                # Add formatted vital signs table if available
+                if vital_signs:
+                    from app.services.formatting_service import medical_formatter
+                    logger.debug(
+                        f"Processing vital signs, type: {type(vital_signs)}")
+                    vital_signs_table = medical_formatter.format_vital_signs_markdown(
+                        vital_signs)
+                    context_parts.append(f"  {vital_signs_table}")
+
+                # Add formatted lab results table if available
+                if lab_results:
+                    from app.services.formatting_service import medical_formatter
+                    logger.debug(
+                        f"Processing lab results, type: {type(lab_results)}, content: {lab_results}")
+                    lab_results_table = medical_formatter.format_lab_results_markdown(
+                        lab_results)
+                    logger.debug(
+                        f"Formatted lab results table: {lab_results_table[:200]}")
+                    context_parts.append(f"  {lab_results_table}")
+                else:
+                    logger.debug(f"No lab results available for this visit")
+
                 if doctor_notes:
                     context_parts.append(f"  Notes: {doctor_notes}")
 
         context_parts.append(
-            "\nPlease answer the question based on the provided medical data. Be specific about which information you're referencing and provide appropriate sources.")
+            "\nPlease answer the question based on the provided medical data. "
+            "When vital signs or lab results are provided in table format, include them in your response. "
+            "The tables use Markdown format which will be rendered properly. "
+            "Be specific about which information you're referencing and provide appropriate sources.")
 
         full_prompt = "\n".join(context_parts)
 
