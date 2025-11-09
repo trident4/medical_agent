@@ -2,12 +2,13 @@
 Patient service layer for business logic.
 """
 
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, or_
 from sqlalchemy.orm import selectinload
 from app.models.patient import Patient, PatientCreate, PatientUpdate, PatientResponse, PatientSummary
 from app.utils import calculate_age
+from app.utils.pagination import PaginatedResponse, Paginator
 from app.models.visit import Visit
 from datetime import datetime, date
 
@@ -18,8 +19,32 @@ class PatientService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def get_patients(self, skip: int = 0, limit: int = 100) -> List[PatientSummary]:
-        """Get a list of patients with summary information."""
+    async def get_patients(
+        self,
+        skip: int = 0,
+        limit: int = 100,
+        page: Optional[int] = None,
+        page_size: Optional[int] = None
+    ) -> PaginatedResponse[PatientSummary] | List[PatientSummary]:
+        """
+        Get a list of patients with summary information.
+
+        Supports both offset-based pagination (skip/limit) and page-based pagination (page/page_size).
+        Returns PaginatedResponse if page-based, List if offset-based for backward compatibility.
+        """
+        # Determine pagination style
+        use_pagination = page is not None and page_size is not None
+
+        if use_pagination:
+            skip = (page - 1) * page_size
+            limit = page_size
+
+        # Get total count
+        count_query = select(func.count(Patient.id))
+        count_result = await self.db.execute(count_query)
+        total = count_result.scalar()
+
+        # Get patients
         query = select(Patient).offset(skip).limit(limit)
         result = await self.db.execute(query)
         patients = result.scalars().all()
@@ -46,6 +71,15 @@ class PatientService:
                 visit_count=visit_count or 0
             )
             summaries.append(summary)
+
+        # Return paginated response if page-based, otherwise just the list
+        if use_pagination:
+            return Paginator.create_paginated_response(
+                items=summaries,
+                total=total,
+                page=page,
+                page_size=page_size
+            )
 
         return summaries
 
@@ -113,9 +147,41 @@ class PatientService:
 
         return True
 
-    async def search_patients(self, search_term: str, skip: int = 0, limit: int = 100) -> List[PatientSummary]:
-        """Search patients by name or patient ID."""
+    async def search_patients(
+        self,
+        search_term: str,
+        skip: int = 0,
+        limit: int = 100,
+        page: Optional[int] = None,
+        page_size: Optional[int] = None
+    ) -> PaginatedResponse[PatientSummary] | List[PatientSummary]:
+        """
+        Search patients by name or patient ID.
+
+        Supports both offset-based pagination (skip/limit) and page-based pagination (page/page_size).
+        Returns PaginatedResponse if page-based, List if offset-based for backward compatibility.
+        """
         search_pattern = f"%{search_term}%"
+
+        # Determine pagination style
+        use_pagination = page is not None and page_size is not None
+
+        if use_pagination:
+            skip = (page - 1) * page_size
+            limit = page_size
+
+        # Get total count for search
+        count_query = select(func.count(Patient.id)).where(
+            or_(
+                Patient.first_name.ilike(search_pattern),
+                Patient.last_name.ilike(search_pattern),
+                Patient.patient_id.ilike(search_pattern),
+                func.concat(Patient.first_name, ' ',
+                            Patient.last_name).ilike(search_pattern)
+            )
+        )
+        count_result = await self.db.execute(count_query)
+        total = count_result.scalar()
 
         query = select(Patient).where(
             or_(
@@ -150,6 +216,15 @@ class PatientService:
                 visit_count=visit_count or 0
             )
             summaries.append(summary)
+
+        # Return paginated response if page-based, otherwise just the list
+        if use_pagination:
+            return Paginator.create_paginated_response(
+                items=summaries,
+                total=total,
+                page=page,
+                page_size=page_size
+            )
 
         return summaries
 

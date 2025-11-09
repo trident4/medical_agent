@@ -2,35 +2,57 @@
 Patient management API endpoints.
 """
 
-from typing import List, Optional
+from typing import List, Optional, Union
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database.session import get_db
 from app.models.patient import PatientCreate, PatientUpdate, PatientResponse, PatientSummary
 from app.services.patient_service import PatientService
+from app.utils.pagination import PaginatedResponse, PaginationParams
 
 router = APIRouter()
 
 
-@router.get("/", response_model=List[PatientSummary])
+@router.get("/", response_model=Union[List[PatientSummary], PaginatedResponse[PatientSummary]])
 async def list_patients(
     skip: int = Query(
-        default=0, ge=0, description="Number of patients to skip"),
+        default=0, ge=0, description="Number of patients to skip (offset-based)"),
     limit: int = Query(default=100, ge=1, le=1000,
-                       description="Number of patients to return"),
+                       description="Number of patients to return (offset-based)"),
+    page: Optional[int] = Query(
+        default=None, ge=1, description="Page number (page-based pagination)"),
+    page_size: Optional[int] = Query(
+        default=None, ge=1, le=100, description="Items per page (page-based pagination)"),
     search: Optional[str] = Query(
         default=None, description="Search term for patient name or ID"),
     db: AsyncSession = Depends(get_db)
 ):
     """
     Retrieve a list of patients with optional search and pagination.
+
+    Supports two pagination modes:
+    1. **Offset-based**: Use `skip` and `limit` parameters (default, backward compatible)
+    2. **Page-based**: Use `page` and `page_size` parameters (returns paginated response with metadata)
+
+    Page-based pagination returns additional metadata like total pages, has_next, has_previous.
     """
     patient_service = PatientService(db)
 
     if search:
-        patients = await patient_service.search_patients(search, skip, limit)
+        patients = await patient_service.search_patients(
+            search_term=search,
+            skip=skip,
+            limit=limit,
+            page=page,
+            page_size=page_size
+        )
     else:
-        patients = await patient_service.get_patients(skip, limit)
+        patients = await patient_service.get_patients(
+            skip=skip,
+            limit=limit,
+            page=page,
+            page_size=page_size
+        )
 
     return patients
 

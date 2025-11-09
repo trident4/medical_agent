@@ -1,7 +1,9 @@
+"""
+Utility modules for the medical assistant application.
+"""
 
+from app.utils.pagination import PaginatedResponse, Paginator, PaginationParams
 from datetime import datetime, date
-
-# Replace the age calculation in get_patients and search_patients methods:
 
 
 def calculate_age(birth_date: date) -> int:
@@ -16,3 +18,11 @@ def calculate_age(birth_date: date) -> int:
         age -= 1
 
     return max(0, age)  # Ensure age is not negative
+
+
+__all__ = [
+    "calculate_age",
+    "PaginatedResponse",
+    "Paginator",
+    "PaginationParams",
+]
