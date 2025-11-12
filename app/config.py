@@ -6,28 +6,35 @@ from typing import List
 from pydantic_settings import BaseSettings
 from pydantic import field_validator
 
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 class Settings(BaseSettings):
     """Application settings."""
 
     # Application
+    ENVIRONMENT: str = "development"
     APP_NAME: str = "Medical Assistant API"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = True
     API_V1_STR: str = "/api/v1"
 
     # Database
-    DATABASE_URL: str = "postgresql://localhost:5432/doctors_assistant"
+    DATABASE_URL: str = os.getenv("DATABASE_URL")
 
     # Security
-    SECRET_KEY: str = "change-me-in-production"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    ALGORITHM: str = "HS256"
+    SECRET_KEY: str = os.getenv("SECRET_KEY")
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(
+        os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 60))
+    ALGORITHM: str = os.getenv("ALGORITHM", "HS256")
 
     # AI Configuration
-    OPENAI_API_KEY: str = ""
-    XAI_API_KEY: str = ""
-    ANTHROPIC_API_KEY: str = ""
+    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+    XAI_API_KEY: str = os.getenv("XAI_API_KEY", "")
+    ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
 
     # CORS
     BACKEND_CORS_ORIGINS: List[str] = [
