@@ -20,7 +20,7 @@ router = APIRouter()
 async def create_user(
     user_data: UserCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role([UserRole.ADMIN]))
+    current_user: User = Depends(require_role(UserRole.ADMIN))
 ) -> UserResponse:
     """
     Create a new user account
@@ -169,7 +169,7 @@ async def update_user(
 async def delete_user(
     user_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_role([UserRole.ADMIN]))
+    current_user: User = Depends(require_role(UserRole.ADMIN))
 ) -> None:
     """
     Delete a user by user ID.

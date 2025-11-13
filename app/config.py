@@ -22,6 +22,11 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     API_V1_STR: str = "/api/v1"
 
+    ADMIN_USERNAME: str = os.getenv("ADMIN_USERNAME", "admin")
+    ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD", "password")
+    ADMIN_EMAIL: str = os.getenv("ADMIN_EMAIL", "admin@example.com")
+    ADMIN_FULLNAME: str = os.getenv("ADMIN_FULLNAME", "Admin User")
+
     # Database
     DATABASE_URL: str = os.getenv("DATABASE_URL")
 

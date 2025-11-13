@@ -105,7 +105,7 @@ class UserService:
         """
         query = select(User).where(User.username == username)
         result = await self.db.execute(query)
-        user = result.scalars_one_or_none()
+        user = result.scalar_one_or_none()
 
         if user:
             return UserResponse.model_validate(user)
@@ -123,7 +123,7 @@ class UserService:
         """
         query = select(User).where(User.email == email)
         result = await self.db.execute(query)
-        user = result.scalars_one_or_none()
+        user = result.scalar_one_or_none()
 
         if user:
             return UserResponse.model_validate(user)

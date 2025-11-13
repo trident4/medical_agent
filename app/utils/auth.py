@@ -19,8 +19,11 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Password hashing context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# # Password hashing context
+# pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# Password hashing context with PBKDF2 (secure, no external deps, HIPAA compliant)
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
 # OAuth2 schema for token authentication
 oauth2_schema = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login")
@@ -61,7 +64,7 @@ class AuthService:
         """ Retrieve a user by username"""
         query = select(User).where(User.username == username)
         result = await db.execute(query)
-        return result.scalars_one_or_none()
+        return result.scalar_one_or_none()
 
     @staticmethod
     async def authenticate_user(db: AsyncSession, username: str, password: str) -> Optional[User]:
@@ -183,9 +186,11 @@ def require_role(*allowed_roles: UserRole):
                 current_user.role,
                 allowed_roles
             )
+            role_names = [getattr(r, 'value', str(r)) for r in allowed_roles]
+
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Access denied. Required role: {', '.join([r.value for r in allowed_roles])}"
+                detail=f"Access denied. Required role: {', '.join(role_names)}"
             )
         return current_user
 
