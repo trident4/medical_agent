@@ -4,7 +4,8 @@ Patient service layer for business logic.
 
 from typing import List, Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_, or_
+from sqlalchemy import select, and_, or_
+from sqlalchemy.sql.functions import count, max
 from sqlalchemy.orm import selectinload
 from app.models.patient import Patient, PatientCreate, PatientUpdate, PatientResponse, PatientSummary
 from app.utils import calculate_age
@@ -38,10 +39,10 @@ class PatientService:
         if use_pagination:
             skip = (page - 1) * page_size
             limit = page_size
-
         # Get total count
-        count_query = select(func.count(Patient.id))
+        count_query = select(count(Patient.id))
         count_result = await self.db.execute(count_query)
+        total = count_result.scalar()
         total = count_result.scalar()
 
         # Get patients
@@ -53,10 +54,11 @@ class PatientService:
         summaries = []
         for patient in patients:
             # Get visit count and last visit
-            visit_query = select(func.count(Visit.id), func.max(Visit.visit_date)).where(
+            visit_query = select(count(Visit.id), max(Visit.visit_date)).where(
                 Visit.patient_id == patient.id
             )
             visit_result = await self.db.execute(visit_query)
+            visit_count, last_visit = visit_result.first()
             visit_count, last_visit = visit_result.first()
 
             # Calculate age
@@ -169,18 +171,17 @@ class PatientService:
         if use_pagination:
             skip = (page - 1) * page_size
             limit = page_size
-
         # Get total count for search
-        count_query = select(func.count(Patient.id)).where(
+        count_query = select(count(Patient.id)).where(
             or_(
                 Patient.first_name.ilike(search_pattern),
                 Patient.last_name.ilike(search_pattern),
                 Patient.patient_id.ilike(search_pattern),
-                func.concat(Patient.first_name, ' ',
-                            Patient.last_name).ilike(search_pattern)
+                (Patient.first_name + ' ' + Patient.last_name).ilike(search_pattern)
             )
         )
         count_result = await self.db.execute(count_query)
+        total = count_result.scalar()
         total = count_result.scalar()
 
         query = select(Patient).where(
@@ -188,21 +189,20 @@ class PatientService:
                 Patient.first_name.ilike(search_pattern),
                 Patient.last_name.ilike(search_pattern),
                 Patient.patient_id.ilike(search_pattern),
-                func.concat(Patient.first_name, ' ',
-                            Patient.last_name).ilike(search_pattern)
+                (Patient.first_name + ' ' + Patient.last_name).ilike(search_pattern)
             )
         ).offset(skip).limit(limit)
 
         result = await self.db.execute(query)
         patients = result.scalars().all()
-
         # Convert to summary format (similar to get_patients)
         summaries = []
         for patient in patients:
-            visit_query = select(func.count(Visit.id), func.max(Visit.visit_date)).where(
+            visit_query = select(count(Visit.id), max(Visit.visit_date)).where(
                 Visit.patient_id == patient.id
             )
             visit_result = await self.db.execute(visit_query)
+            visit_count, last_visit = visit_result.first()
             visit_count, last_visit = visit_result.first()
 
             age = calculate_age(patient.date_of_birth)

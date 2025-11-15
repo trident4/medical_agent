@@ -140,7 +140,7 @@ class UserService:
         query = select(User).where(User.id == user_id)
         result = await self.db.execute(query)
         user = result.scalar_one_or_none()
-        if user:
+        if user and user.is_active:
             return UserResponse.model_validate(user)
         return None
 
@@ -173,6 +173,19 @@ class UserService:
 
         return [UserResponse.model_validate(user) for user in users]
 
+    async def get_user_orm_by_id(self, user_id: int) -> Optional[User]:
+        """
+        Get user ORM model by ID
+        Args:
+            user_id (int): ID of the user
+        Returns:
+            User ORM model if found, None otherwise
+        """
+        query = select(User).where(User.id == user_id)
+        result = await self.db.execute(query)
+        user = result.scalar_one_or_none()
+        return user
+
     async def update_user(self, user_id: int, user_data: UserUpdate) -> UserResponse:
         """
         Update the user information
@@ -186,7 +199,8 @@ class UserService:
                 HTTPException: If user not found
         """
         logger.info("Updating user with ID: %s", user_id)
-        existing_user = await self.get_user_by_id(user_id)
+        existing_user = await self.get_user_orm_by_id(user_id)
+        print(existing_user, "existing user")
         if not existing_user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -231,7 +245,7 @@ class UserService:
             HTTPException: If user not found
         """
         logger.info("Deleting user with ID: %s", user_id)
-        existing_user = await self.get_user_by_id(user_id)
+        existing_user = await self.get_user_orm_by_id(user_id)
         if not existing_user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,

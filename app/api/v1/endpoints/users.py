@@ -64,7 +64,7 @@ async def get_current_user_info(
     return current_user
 
 
-@router.get("/", response_model=List[UserResponse], summary="List all users", description="Retrieve a list of all users (Admin only)")
+@router.get("/", response_model=List[UserResponse], summary="List all users", description="Retrieve a list of all users (Admin and Doctors only)")
 async def list_users(
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(
@@ -75,7 +75,7 @@ async def list_users(
         None, description="Filter users by active status"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(
-        require_role([UserRole.ADMIN, UserRole.DOCTOR]))
+        require_role(UserRole.ADMIN, UserRole.DOCTOR))
 ) -> List[UserResponse]:
     """
     List all users in the system.
@@ -139,7 +139,7 @@ async def update_user(
     user_data: UserUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(
-        require_role([UserRole.ADMIN, UserRole.DOCTOR]))
+        require_role(UserRole.ADMIN))
 ) -> UserResponse:
     """
     Update user information by user ID.
@@ -184,7 +184,7 @@ async def delete_user(
         None
     """
     # check permission
-    if current_user.role not in [UserRole.ADMIN, UserRole.DOCTOR]:
+    if current_user.role not in [UserRole.ADMIN]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only Admins can delete users"

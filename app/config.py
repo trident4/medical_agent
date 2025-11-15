@@ -29,6 +29,7 @@ class Settings(BaseSettings):
 
     # Database
     DATABASE_URL: str = os.getenv("DATABASE_URL")
+    TEST_DATABASE_URL: str = os.getenv("TEST_DATABASE_URL")
 
     # Security
     SECRET_KEY: str = os.getenv("SECRET_KEY")
