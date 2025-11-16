@@ -78,7 +78,7 @@ class PatientUpdate(BaseModel):
 
 class PatientResponse(PatientBase):
     """Schema for patient response."""
-
+    patient_id: str
     id: int
     created_at: datetime
     updated_at: datetime
