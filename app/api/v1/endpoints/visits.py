@@ -74,38 +74,38 @@ async def create_visit(
     return created_visit
 
 
-@router.get("/{visit_id}", response_model=VisitResponse)
-async def get_visit(
-    visit_id: str,
+@router.get("/{db_id}", response_model=VisitResponse)
+async def get_visit_by_db_id(
+    db_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(
         UserRole.ADMIN, UserRole.DOCTOR, UserRole.NURSE))
 ):
     """
-    Retrieve a specific visit by ID.
+    Retrieve a specific visit by database ID.
 
     Requires ADMIN, DOCTOR, or NURSE role for HIPAA compliance.
     """
-    logger.info("Getting visit %s by user: %s (role: %s)", visit_id,
+    logger.info("Getting visit by DB ID %d by user: %s (role: %s)", db_id,
                 current_user.username, current_user.role.value)
 
     visit_service = VisitService(db)
-    visit = await visit_service.get_visit_by_visit_id(visit_id)
+    visit = await visit_service.get_visit_by_id(db_id)
 
     if not visit:
-        logger.warning("Visit not found: ID %s (requested by %s)",
-                       visit_id, current_user.username)
+        logger.warning("Visit not found: DB ID %d (requested by %s)",
+                       db_id, current_user.username)
         raise HTTPException(
             status_code=404,
-            detail=f"Visit with ID {visit_id} not found"
+            detail=f"Visit with DB ID {db_id} not found"
         )
 
     return visit
 
 
-@router.put("/{visit_id}", response_model=VisitResponse)
+@router.put("/{db_id}", response_model=VisitResponse)
 async def update_visit(
-    visit_id: str,
+    db_id: int,
     visit_update: VisitUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.DOCTOR))
@@ -115,30 +115,30 @@ async def update_visit(
 
     Requires ADMIN or DOCTOR role for HIPAA compliance.
     """
-    logger.info("Updating visit %s by user: %s (role: %s)",
-                visit_id, current_user.username, current_user.role.value)
+    logger.info("Updating visit %d by user: %s (role: %s)",
+                db_id, current_user.username, current_user.role.value)
 
     visit_service = VisitService(db)
 
     # Check if visit exists
-    existing_visit = await visit_service.get_visit_by_visit_id(visit_id)
+    existing_visit = await visit_service.get_visit_by_id(db_id)
     if not existing_visit:
-        logger.warning("Visit update failed: ID %s not found (attempted by %s)",
-                       visit_id, current_user.username)
+        logger.warning("Visit update failed: ID %d not found (attempted by %s)",
+                       db_id, current_user.username)
         raise HTTPException(
             status_code=404,
-            detail=f"Visit with ID {visit_id} not found"
+            detail=f"Visit with ID {db_id} not found"
         )
 
-    updated_visit = await visit_service.update_visit(visit_id, visit_update)
-    logger.info("Visit updated: ID %s by user %s",
-                visit_id, current_user.username)
+    updated_visit = await visit_service.update_visit(db_id, visit_update)
+    logger.info("Visit updated: ID %d by user %s",
+                db_id, current_user.username)
     return updated_visit
 
 
-@router.delete("/{visit_id}", status_code=204)
+@router.delete("/{db_id}", status_code=204)
 async def delete_visit(
-    visit_id: str,
+    db_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(UserRole.ADMIN))
 ):
@@ -147,29 +147,29 @@ async def delete_visit(
 
     Requires ADMIN role for HIPAA compliance and data protection.
     """
-    logger.info("Deleting visit %s by user: %s (role: %s)",
-                visit_id, current_user.username, current_user.role.value)
+    logger.info("Deleting visit %d by user: %s (role: %s)",
+                db_id, current_user.username, current_user.role.value)
 
     visit_service = VisitService(db)
 
     # Check if visit exists
-    existing_visit = await visit_service.get_visit_by_visit_id(visit_id)
+    existing_visit = await visit_service.get_visit_by_id(db_id)
     if not existing_visit:
-        logger.warning("Visit deletion failed: ID %s not found (attempted by %s)",
-                       visit_id, current_user.username)
+        logger.warning("Visit deletion failed: ID %d not found (attempted by %s)",
+                       db_id, current_user.username)
         raise HTTPException(
             status_code=404,
-            detail=f"Visit with ID {visit_id} not found"
+            detail=f"Visit with ID {db_id} not found"
         )
 
-    await visit_service.delete_visit(visit_id)
-    logger.info("Visit deleted: ID %s by user %s",
-                visit_id, current_user.username)
+    await visit_service.delete_visit(db_id)
+    logger.info("Visit deleted: ID %d by user %s",
+                db_id, current_user.username)
 
 
-@router.get("/{visit_id}/patient", response_model=dict)
+@router.get("/{db_id}/patient", response_model=dict)
 async def get_visit_patient(
-    visit_id: str,
+    db_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(
         UserRole.ADMIN, UserRole.DOCTOR, UserRole.NURSE))
@@ -179,20 +179,20 @@ async def get_visit_patient(
 
     Requires ADMIN, DOCTOR, or NURSE role for HIPAA compliance.
     """
-    logger.info("Getting patient for visit %s by user: %s (role: %s)",
-                visit_id, current_user.username, current_user.role.value)
+    logger.info("Getting patient for visit %d by user: %s (role: %s)",
+                db_id, current_user.username, current_user.role.value)
 
     visit_service = VisitService(db)
 
     # Check if visit exists
-    visit = await visit_service.get_visit_by_visit_id(visit_id)
+    visit = await visit_service.get_visit_by_id(db_id)
     if not visit:
-        logger.warning("Visit patient request failed: ID %s not found (requested by %s)",
-                       visit_id, current_user.username)
+        logger.warning("Visit patient request failed: ID %d not found (requested by %s)",
+                       db_id, current_user.username)
         raise HTTPException(
             status_code=404,
-            detail=f"Visit with ID {visit_id} not found"
+            detail=f"Visit with ID {db_id} not found"
         )
 
-    patient = await visit_service.get_visit_patient(visit_id)
+    patient = await visit_service.get_visit_patient(db_id)
     return patient

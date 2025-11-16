@@ -105,7 +105,7 @@ async def create_patient(
 
 @router.get("/{patient_id}", response_model=PatientResponse)
 async def get_patient(
-    patient_id: str,
+    patient_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(
         UserRole.ADMIN, UserRole.DOCTOR, UserRole.NURSE))
@@ -115,14 +115,14 @@ async def get_patient(
 
     Requires ADMIN, DOCTOR, or NURSE role for HIPAA compliance.
     """
-    logger.info("Getting patient %s by user: %s (role: %s)",
+    logger.info("Getting patient %d by user: %s (role: %s)",
                 patient_id, current_user.username, current_user.role.value)
 
     patient_service = PatientService(db)
-    patient = await patient_service.get_patient_by_patient_id(patient_id)
+    patient = await patient_service.get_patient_by_id(patient_id)
 
     if not patient:
-        logger.warning("Patient not found: ID %s (requested by %s)",
+        logger.warning("Patient not found: ID %d (requested by %s)",
                        patient_id, current_user.username)
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -134,7 +134,7 @@ async def get_patient(
 
 @router.put("/{patient_id}", response_model=PatientResponse)
 async def update_patient(
-    patient_id: str,
+    patient_id: int,
     patient_update: PatientUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.DOCTOR))
@@ -144,15 +144,15 @@ async def update_patient(
 
     Requires ADMIN or DOCTOR role for HIPAA compliance.
     """
-    logger.info("Updating patient %s by user: %s (role: %s)",
+    logger.info("Updating patient %d by user: %s (role: %s)",
                 patient_id, current_user.username, current_user.role.value)
 
     patient_service = PatientService(db)
 
     # Check if patient exists
-    existing_patient = await patient_service.get_patient_by_patient_id(patient_id)
+    existing_patient = await patient_service.get_patient_by_id(patient_id)
     if not existing_patient:
-        logger.warning("Patient update failed: ID %s not found (attempted by %s)",
+        logger.warning("Patient update failed: ID %d not found (attempted by %s)",
                        patient_id, current_user.username)
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -160,14 +160,14 @@ async def update_patient(
         )
 
     updated_patient = await patient_service.update_patient(patient_id, patient_update)
-    logger.info("Patient updated: ID %s by user %s",
+    logger.info("Patient updated: ID %d by user %s",
                 patient_id, current_user.username)
     return updated_patient
 
 
 @router.delete("/{patient_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_patient(
-    patient_id: str,
+    patient_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(UserRole.ADMIN))
 ):
@@ -182,9 +182,9 @@ async def delete_patient(
     patient_service = PatientService(db)
 
     # Check if patient exists
-    existing_patient = await patient_service.get_patient_by_patient_id(patient_id)
+    existing_patient = await patient_service.get_patient_by_id(patient_id)
     if not existing_patient:
-        logger.warning("Patient deletion failed: ID %s not found (attempted by %s)",
+        logger.warning("Patient deletion failed: ID %d not found (attempted by %s)",
                        patient_id, current_user.username)
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -198,7 +198,7 @@ async def delete_patient(
 
 @router.get("/{patient_id}/visits/", response_model=List[dict])
 async def get_patient_visits(
-    patient_id: str,
+    patient_id: int,
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=50, ge=1, le=500),
     db: AsyncSession = Depends(get_db),
@@ -210,7 +210,7 @@ async def get_patient_visits(
 
     Requires ADMIN, DOCTOR, or NURSE role for HIPAA compliance.
     """
-    logger.info("Getting visits for patient %s by user: %s (role: %s)",
+    logger.info("Getting visits for patient %d by user: %s (role: %s)",
                 patient_id, current_user.username, current_user.role.value)
 
     patient_service = PatientService(db)
@@ -231,7 +231,7 @@ async def get_patient_visits(
 
 @router.get("/{patient_id}/summary", response_model=dict)
 async def get_patient_health_summary(
-    patient_id: str,
+    patient_id: int,
     include_recent_visits: int = Query(default=5, ge=1, le=20),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.DOCTOR))
@@ -241,15 +241,15 @@ async def get_patient_health_summary(
 
     Requires ADMIN or DOCTOR role for HIPAA compliance.
     """
-    logger.info("Getting health summary for patient %s by user: %s (role: %s)",
+    logger.info("Getting health summary for patient %d by user: %s (role: %s)",
                 patient_id, current_user.username, current_user.role.value)
 
     patient_service = PatientService(db)
 
     # Check if patient exists
-    patient = await patient_service.get_patient_by_patient_id(patient_id)
+    patient = await patient_service.get_patient_by_id(patient_id)
     if not patient:
-        logger.warning("Patient summary request failed: ID %s not found (requested by %s)",
+        logger.warning("Patient summary request failed: ID %d not found (requested by %s)",
                        patient_id, current_user.username)
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

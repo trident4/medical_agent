@@ -118,7 +118,7 @@ class PatientService:
             patient = result.scalar_one_or_none()
 
             if patient:
-                logger.info("Patient found: %s", patient.patient_id)
+                logger.info("Patient found: %d", patient.id)
                 return PatientResponse.model_validate(patient)
 
             logger.warning(
@@ -182,17 +182,17 @@ class PatientService:
                 detail="Error creating patient"
             ) from e
 
-    async def update_patient(self, patient_id: str, patient_update: PatientUpdate) -> PatientResponse:
+    async def update_patient(self, patient_id: int, patient_update: PatientUpdate) -> PatientResponse:
         """Update an existing patient."""
-        logger.info("Updating patient: %s", patient_id)
+        logger.info("Updating patient: %d", patient_id)
 
         try:
-            query = select(Patient).where(Patient.patient_id == patient_id)
+            query = select(Patient).where(Patient.id == patient_id)
             result = await self.db.execute(query)
             db_patient = result.scalar_one_or_none()
 
             if not db_patient:
-                logger.warning("Patient not found for update: %s", patient_id)
+                logger.warning("Patient not found for update: %d", patient_id)
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail=f"Patient with ID {patient_id} not found"
@@ -220,12 +220,12 @@ class PatientService:
                 detail="Error updating patient"
             ) from e
 
-    async def delete_patient(self, patient_id: str) -> bool:
+    async def delete_patient(self, patient_id: int) -> bool:
         """Delete a patient and all associated visits."""
-        logger.info("Deleting patient: %s", patient_id)
+        logger.info("Deleting patient: %d", patient_id)
 
         try:
-            query = select(Patient).where(Patient.patient_id == patient_id)
+            query = select(Patient).where(Patient.id == patient_id)
             result = await self.db.execute(query)
             db_patient = result.scalar_one_or_none()
 
@@ -349,19 +349,19 @@ class PatientService:
                 detail="Error searching patients"
             ) from e
 
-    async def get_patient_visits(self, patient_id: str, skip: int = 0, limit: int = 50) -> List[Dict]:
+    async def get_patient_visits(self, patient_id: int, skip: int = 0, limit: int = 50) -> List[Dict]:
         """Get all visits for a patient."""
-        logger.info("Retrieving visits for patient: %s", patient_id)
+        logger.info("Retrieving visits for patient: %d", patient_id)
 
         try:
             # First get the patient's database ID - FETCH IMMEDIATELY
             patient_query = select(Patient.id).where(
-                Patient.patient_id == patient_id)
+                Patient.id == patient_id)
             patient_result = await self.db.execute(patient_query)
             patient_db_id = patient_result.scalar_one_or_none()
 
             if not patient_db_id:
-                logger.warning("Patient not found: %s", patient_id)
+                logger.warning("Patient not found: %d", patient_id)
                 return []
 
             # Get visits
@@ -372,7 +372,7 @@ class PatientService:
             result = await self.db.execute(query)
             visits = result.scalars().all()
 
-            logger.info("Retrieved %d visits for patient %s",
+            logger.info("Retrieved %d visits for patient %d",
                         len(visits), patient_id)
 
             return [
@@ -398,9 +398,9 @@ class PatientService:
                 detail="Error retrieving patient visits"
             ) from e
 
-    async def get_patient_health_summary(self, patient_id: str, recent_visits_count: int = 5) -> Dict:
+    async def get_patient_health_summary(self, patient_id: int, recent_visits_count: int = 5) -> Dict:
         """Get a comprehensive health summary for a patient."""
-        logger.info("Generating health summary for patient: %s", patient_id)
+        logger.info("Generating health summary for patient: %d", patient_id)
 
         try:
             patient = await self.get_patient_by_patient_id(patient_id)

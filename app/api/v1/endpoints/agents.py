@@ -113,13 +113,13 @@ async def ask_question_endpoint(
 
         # Get relevant data based on context
         if request.patient_id:
-            patient = await patient_service.get_patient_by_patient_id(request.patient_id)
+            patient = await patient_service.get_patient_by_id(request.patient_id)
             if patient:
                 patients = [patient]
                 visits = await patient_service.get_patient_visits(request.patient_id)
 
         if request.visit_id:
-            visit = await visit_service.get_visit_by_visit_id(request.visit_id)
+            visit = await visit_service.get_visit_by_id(request.visit_id)
             if visit:
                 visits = [visit]
                 if not patients:
@@ -183,7 +183,7 @@ async def get_health_summary_endpoint(
         patient_service = PatientService(db)
 
         # Get patient information
-        patient = await patient_service.get_patient_by_patient_id(request.patient_id)
+        patient = await patient_service.get_patient_by_id(request.patient_id)
         if not patient:
             raise HTTPException(
                 status_code=404,

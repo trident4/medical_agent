@@ -33,9 +33,9 @@ class QuestionAnswerRequest(BaseModel):
     """Request schema for Q&A about patient data."""
 
     question: str = Field(..., description="Question about patient data")
-    patient_id: Optional[str] = Field(
+    patient_id: Optional[int] = Field(
         None, description="Specific patient ID to query")
-    visit_id: Optional[str] = Field(
+    visit_id: Optional[int] = Field(
         None, description="Specific visit ID to query")
     context_type: str = Field(
         default="all", description="Context type: patient, visit, or all")
@@ -55,7 +55,7 @@ class QuestionAnswerResponse(BaseModel):
 class HealthSummaryRequest(BaseModel):
     """Request schema for patient health summary."""
 
-    patient_id: str = Field(..., description="Patient ID for health summary")
+    patient_id: int = Field(..., description="Patient ID for health summary")
     include_recent_visits: int = Field(
         default=5, description="Number of recent visits to include")
     time_period_days: Optional[int] = Field(
@@ -65,7 +65,7 @@ class HealthSummaryRequest(BaseModel):
 class HealthSummaryResponse(BaseModel):
     """Response schema for patient health summary."""
 
-    patient_id: str
+    patient_id: int
     summary: str
     health_trends: List[str]
     risk_factors: List[str]

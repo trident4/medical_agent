@@ -8,6 +8,7 @@ from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, Floa
 from sqlalchemy.orm import relationship
 from pydantic import BaseModel, Field
 from app.database.base import Base
+from sqlalchemy.dialects.postgresql import JSONB
 
 
 # SQLAlchemy Models
@@ -29,8 +30,8 @@ class Visit(Base):
     medications_prescribed = Column(Text)
     follow_up_instructions = Column(Text)
     doctor_notes = Column(Text)
-    vital_signs = Column(Text)  # JSON string for vital signs
-    lab_results = Column(Text)  # JSON string for lab results
+    vital_signs = Column(JSONB)  # JSON string for vital signs
+    lab_results = Column(JSONB)  # JSON string for lab results
     duration_minutes = Column(Integer)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow,
@@ -107,7 +108,7 @@ class VisitUpdate(BaseModel):
 
 class VisitResponse(VisitBase):
     """Schema for visit response."""
-
+    visit_id: str
     id: int
     created_at: datetime
     updated_at: datetime
