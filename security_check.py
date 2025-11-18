@@ -100,9 +100,9 @@ def check_environment_variables():
 
     for key, value in env_checks:
         if value and value not in ['your-openai-api-key', 'your-xai-api-key-here', 'your-anthropic-api-key']:
-            print(f"✅ {key}: Set (length: {len(value)})")
+            pass
         else:
-            print(f"⚠️  {key}: Not set or placeholder")
+            pass
 
 
 def security_recommendations():

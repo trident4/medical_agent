@@ -15,12 +15,9 @@ def debug_xai_env():
     print("=" * 40)
 
     # Check settings
-    print(f"Settings XAI_API_KEY: {'Set' if settings.XAI_API_KEY else 'None'}")
 
     # Check environment variable
     env_key = os.environ.get('XAI_API_KEY')
-    print(
-        f"Environment XAI_API_KEY: {env_key[:10] + '...' + env_key[-4:] if env_key else 'Not set'}")
 
     # Set it manually and test
     if settings.XAI_API_KEY:
@@ -29,8 +26,6 @@ def debug_xai_env():
 
         # Test again
         env_key_after = os.environ.get('XAI_API_KEY')
-        print(
-            f"Environment after set: {env_key_after[:10] + '...' + env_key_after[-4:] if env_key_after else 'Still not set'}")
 
     # Show all X.AI related env vars
     print("\n🔧 All XAI environment variables:")
@@ -38,7 +33,6 @@ def debug_xai_env():
         if 'XAI' in key.upper() or 'GROK' in key.upper():
             masked = value[:10] + "..." + \
                 value[-4:] if len(value) > 14 else value
-            print(f"  {key}: {masked}")
 
 
 if __name__ == "__main__":
