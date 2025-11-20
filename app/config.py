@@ -9,7 +9,11 @@ from pydantic import field_validator
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+# Only load .env file if DATABASE_URL is not already set
+# This prevents Docker from loading local .env when environment variables
+# are already provided via docker-compose
+if not os.getenv("DATABASE_URL"):
+    load_dotenv()
 
 
 class Settings(BaseSettings):
@@ -28,7 +32,35 @@ class Settings(BaseSettings):
     ADMIN_FULLNAME: str = os.getenv("ADMIN_FULLNAME", "Admin User")
 
     # Database
-    DATABASE_URL: str = os.getenv("DATABASE_URL")
+    POSTGRES_USER: str = os.getenv("POSTGRES_USER", "chetan")
+    POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "Chetan123")
+    POSTGRES_HOST: str = os.getenv("POSTGRES_HOST", "localhost")
+    POSTGRES_PORT: str = os.getenv("POSTGRES_PORT", "5432")
+    POSTGRES_DB: str = os.getenv("POSTGRES_DB", "doctors_assistant")
+    
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "")
+    TEST_DATABASE_URL: str = os.getenv("TEST_DATABASE_URL")
+
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def assemble_db_connection(cls, v: str | None, info) -> str:
+        if isinstance(v, str) and v:
+            return v
+        
+        # Construct URL from components
+        # We need to access values from the instance being validated, but since this is a 
+        # class method validator with mode='before', we rely on environment variables 
+        # or defaults defined above if we were using model_validator.
+        # However, for simplicity and correctness with Pydantic v2, let's use a model_validator
+        # or just construct it here using os.getenv since we're in Settings
+        
+        user = os.getenv("POSTGRES_USER", "chetan")
+        password = os.getenv("POSTGRES_PASSWORD", "Chetan123")
+        host = os.getenv("POSTGRES_HOST", "localhost")
+        port = os.getenv("POSTGRES_PORT", "5432")
+        db = os.getenv("POSTGRES_DB", "doctors_assistant")
+        
+        return f"postgresql://{user}:{password}@{host}:{port}/{db}"
     TEST_DATABASE_URL: str = os.getenv("TEST_DATABASE_URL")
 
     # Security

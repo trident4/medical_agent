@@ -6,6 +6,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import structlog
+import logging
+import os
 
 from app.config import settings
 from app.api.v1.api import api_router
@@ -26,6 +28,17 @@ structlog.configure(
 )
 
 logger = structlog.get_logger()
+
+# Disable logging in production
+if os.getenv("ENVIRONMENT") == "production":
+    # Disables all logging below CRITICAL level
+    logging.disable(logging.CRITICAL)
+else:
+    # Configure normal logging for development
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
 
 
 @asynccontextmanager

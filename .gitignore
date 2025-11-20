@@ -1,4 +1,5 @@
 .env
+.env_docker
 __pycache__/
 *.py[cod]
 *$py.class
@@ -20,7 +21,7 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
-scripts/create_admin.py
+# scripts/create_admin.py
 
 # PyInstaller
 *.manifest
