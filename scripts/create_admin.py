@@ -100,7 +100,6 @@ async def create_admin_user() -> None:
                 "Creating initial admin user",
                 extra={"event": "admin_creation_started"}
             )
-            print("🔐 Creating admin user...", settings.ADMIN_PASSWORD)
 
             hashed_password = AuthService.get_password_hash(
                 settings.ADMIN_PASSWORD)
@@ -133,8 +132,6 @@ async def create_admin_user() -> None:
             print(
                 f"✅ Admin user '{settings.ADMIN_USERNAME}' created successfully!")
             print(f"\n📋 Login credentials:")
-            print(f"   Username: {settings.ADMIN_USERNAME}")
-            print(f"   Password: {settings.ADMIN_PASSWORD}")
             print(f"\n⚠️  IMPORTANT: Change the password immediately after first login!")
             print(f"   Login at: http://localhost:8000/docs")
 

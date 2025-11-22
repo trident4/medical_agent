@@ -26,19 +26,19 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     API_V1_STR: str = "/api/v1"
 
-    ADMIN_USERNAME: str = os.getenv("ADMIN_USERNAME", "admin")
-    ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD", "password")
-    ADMIN_EMAIL: str = os.getenv("ADMIN_EMAIL", "admin@example.com")
-    ADMIN_FULLNAME: str = os.getenv("ADMIN_FULLNAME", "Admin User")
+    ADMIN_USERNAME: str = os.getenv("ADMIN_USERNAME")
+    ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD")
+    ADMIN_EMAIL: str = os.getenv("ADMIN_EMAIL")
+    ADMIN_FULLNAME: str = os.getenv("ADMIN_FULLNAME")
 
     # Database
-    POSTGRES_USER: str = os.getenv("POSTGRES_USER", "chetan")
-    POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "Chetan123")
-    POSTGRES_HOST: str = os.getenv("POSTGRES_HOST", "localhost")
-    POSTGRES_PORT: str = os.getenv("POSTGRES_PORT", "5432")
-    POSTGRES_DB: str = os.getenv("POSTGRES_DB", "doctors_assistant")
+    POSTGRES_USER: str = os.getenv("POSTGRES_USER")
+    POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD")
+    POSTGRES_HOST: str = os.getenv("POSTGRES_HOST")
+    POSTGRES_PORT: str = os.getenv("POSTGRES_PORT")
+    POSTGRES_DB: str = os.getenv("POSTGRES_DB")
     
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "")
+    DATABASE_URL: str = os.getenv("DATABASE_URL")
     TEST_DATABASE_URL: str = os.getenv("TEST_DATABASE_URL")
 
     @field_validator("DATABASE_URL", mode="before")
@@ -53,12 +53,11 @@ class Settings(BaseSettings):
         # or defaults defined above if we were using model_validator.
         # However, for simplicity and correctness with Pydantic v2, let's use a model_validator
         # or just construct it here using os.getenv since we're in Settings
-        
-        user = os.getenv("POSTGRES_USER", "chetan")
-        password = os.getenv("POSTGRES_PASSWORD", "Chetan123")
-        host = os.getenv("POSTGRES_HOST", "localhost")
-        port = os.getenv("POSTGRES_PORT", "5432")
-        db = os.getenv("POSTGRES_DB", "doctors_assistant")
+        user = os.getenv("POSTGRES_USER")
+        password = os.getenv("POSTGRES_PASSWORD")
+        host = os.getenv("POSTGRES_HOST")
+        port = os.getenv("POSTGRES_PORT")
+        db = os.getenv("POSTGRES_DB")
         
         return f"postgresql://{user}:{password}@{host}:{port}/{db}"
     TEST_DATABASE_URL: str = os.getenv("TEST_DATABASE_URL")

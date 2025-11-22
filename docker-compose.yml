@@ -27,11 +27,11 @@ services:
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - ADMIN_EMAIL=${ADMIN_EMAIL}
       - ADMIN_FULLNAME=${ADMIN_FULLNAME}
-      - POSTGRES_DB=${POSTGRES_DB:-doctors_assistant}
-      - POSTGRES_USER=${POSTGRES_USER:-chetan}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-Chetan123}
-      - POSTGRES_HOST=db
-      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
     depends_on:
       db:
         condition: service_healthy
@@ -41,13 +41,13 @@ services:
     env_file:
       - .env_docker
     environment:
-      - POSTGRES_DB=${POSTGRES_DB:-doctors_assistant}
-      - POSTGRES_USER=${POSTGRES_USER:-chetan}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-Chetan123}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-chetan} -d ${POSTGRES_DB:-doctors_assistant}" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -59,8 +59,8 @@ services:
     env_file:
       - .env_docker
     environment:
-      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL:-admin@example.com}
-      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD:-admin}
+      - PGADMIN_DEFAULT_EMAIL=${ADMIN_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${ADMIN_PASSWORD}
     depends_on:
       - db
     restart: unless-stopped

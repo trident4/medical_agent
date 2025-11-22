@@ -1,0 +1,16 @@
+# Create .aiignore file
+cat > .aiignore << 'EOF'
+# Prevent AI from reading sensitive files
+.env
+.env_docker
+.env.*
+*.env
+.env.local
+.env.production
+.env.development
+secrets/
+*.key
+*.pem
+*.p12
+credentials.json
+EOF
