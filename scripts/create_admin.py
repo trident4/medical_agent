@@ -59,10 +59,17 @@ async def create_admin_user() -> None:
             raise ValueError(
                 "ADMIN_USERNAME and ADMIN_PASSWORD must be set in config")
 
-        # Create async engine with asyncpg driver (matches session.py)
+        # Create async engine with appropriate driver (matches session.py)
+        database_url = settings.DATABASE_URL
+        
+        # Handle driver-specific URL schemes
+        if database_url.startswith("postgresql://"):
+            database_url = database_url.replace("postgresql://", "postgresql+asyncpg://")
+        elif database_url.startswith("mysql://"):
+            database_url = database_url.replace("mysql://", "mysql+aiomysql://")
+        
         engine = create_async_engine(
-            settings.DATABASE_URL.replace(
-                "postgresql://", "postgresql+asyncpg://"),
+            database_url,
             echo=settings.DEBUG,
             pool_pre_ping=True,  # Verify connections before use
             pool_size=5,         # Connection pool size

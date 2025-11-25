@@ -4,11 +4,10 @@ Visit data models.
 
 from datetime import datetime
 from typing import Optional, List
-from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, Float
+from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, Float, JSON
 from sqlalchemy.orm import relationship
 from pydantic import BaseModel, Field
 from app.database.base import Base
-from sqlalchemy.dialects.postgresql import JSONB
 
 
 # SQLAlchemy Models
@@ -30,8 +29,8 @@ class Visit(Base):
     medications_prescribed = Column(Text)
     follow_up_instructions = Column(Text)
     doctor_notes = Column(Text)
-    vital_signs = Column(JSONB)  # JSON string for vital signs
-    lab_results = Column(JSONB)  # JSON string for lab results
+    vital_signs = Column(JSON)  # JSON data for vital signs
+    lab_results = Column(JSON)  # JSON data for lab results
     duration_minutes = Column(Integer)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow,
