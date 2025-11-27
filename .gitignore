@@ -79,3 +79,4 @@ logs/
 # Medical data (security)
 patient_data/
 medical_records/
+.env_docker

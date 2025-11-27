@@ -28,6 +28,7 @@ class FallbackAgent:
         """Setup all available AI agents based on API keys."""
         agents = {}
 
+        # We can also use gemini-2.0-flash-exp it is totaly free
         # Set environment variables for API keys
         if settings.OPENAI_API_KEY:
             os.environ['OPENAI_API_KEY'] = settings.OPENAI_API_KEY
