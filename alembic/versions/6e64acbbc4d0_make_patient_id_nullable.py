@@ -20,14 +20,14 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade():
     op.alter_column('patients', 'patient_id',
-                    existing_type=sa.String(),
+                    existing_type=sa.String(length=50),
                     nullable=True
                     )
 
 
 def downgrade():
     op.alter_column('patients', 'patient_id',
-                    existing_type=sa.String(),
+                    existing_type=sa.String(length=50),
                     nullable=False
                     )
 

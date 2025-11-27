@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   web:
     build:
@@ -6,63 +8,43 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - .env_docker # Ensure this file exists with all vars
+      - .env_docker # Load Docker overrides (DB host=db, DB creds)
     environment:
-      # - DATABASE_URL=${DATABASE_URL}  <-- Removed to prevent overriding .env_docker with host .env
-      # - TEST_DATABASE_URL=${TEST_DATABASE_URL} <-- Removed to prevent overriding .env_docker with host .env
-      - SECRET_KEY=${SECRET_KEY}
       - ENVIRONMENT=${ENVIRONMENT:-production}
-      - XAI_API_KEY=${XAI_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - APP_NAME=${APP_NAME:-Medical Assistant API}
-      - APP_VERSION=${APP_VERSION:-1.0.0}
-      - API_V1_STR=${API_V1_STR}
-      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
-      - ALGORITHM=${ALGORITHM}
-      - BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS:-["http://localhost:3000", "http://localhost:8080"]}
+      # Explicitly ensure these are set if not in env files
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - LOG_FORMAT=${LOG_FORMAT:-json}
-      - ADMIN_USERNAME=${ADMIN_USERNAME}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
-      - ADMIN_EMAIL=${ADMIN_EMAIL}
-      - ADMIN_FULLNAME=${ADMIN_FULLNAME}
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_HOST=${POSTGRES_HOST}
-      - POSTGRES_PORT=${POSTGRES_PORT}
     depends_on:
       db:
         condition: service_healthy
-    restart: unless-stopped # Added for reliability
+    restart: unless-stopped
+
   db:
-    image: postgres:13
+    image: mysql:8.0
+    command: --default-authentication-plugin=mysql_native_password
     env_file:
       - .env_docker
-    environment:
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    ports:
+      - "3307:3306"
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - db_data:/var/lib/mysql
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: unless-stopped
-  pgadmin:
-    image: chorss/docker-pgadmin4
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
     ports:
-      - "5050:5050"
+      - "8080:80"
     env_file:
       - .env_docker
     environment:
-      - PGADMIN_DEFAULT_EMAIL=${ADMIN_EMAIL}
-      - PGADMIN_DEFAULT_PASSWORD=${ADMIN_PASSWORD}
+      - PMA_HOST=db
     depends_on:
       - db
     restart: unless-stopped
+
 volumes:
   db_data:

@@ -28,6 +28,7 @@ class FallbackAgent:
         """Setup all available AI agents based on API keys."""
         agents = {}
 
+        # We can also use gemini-2.0-flash-exp it is totaly free
         # Set environment variables for API keys
         if settings.OPENAI_API_KEY:
             os.environ['OPENAI_API_KEY'] = settings.OPENAI_API_KEY
@@ -35,8 +36,25 @@ class FallbackAgent:
             os.environ['XAI_API_KEY'] = settings.XAI_API_KEY
         if settings.ANTHROPIC_API_KEY:
             os.environ['ANTHROPIC_API_KEY'] = settings.ANTHROPIC_API_KEY
+        if settings.GOOGLE_API_KEY:
+            os.environ['GOOGLE_API_KEY'] = settings.GOOGLE_API_KEY
 
-        # X.AI Agent (Primary) - Use proper PydanticAI GrokProvider
+        # Google Gemini Agent (Primary - FREE!)
+        if settings.GOOGLE_API_KEY:
+            try:
+                agents['gemini'] = Agent(
+                    'gemini-2.0-flash',  # Free tier: 1500 requests/day
+                    system_prompt=self.system_prompt
+                )
+                logger.info("✅ Google Gemini 2.0 Flash agent configured (FREE)")
+            except Exception as e:
+                logger.warning(f"⚠️ Gemini agent setup failed: {e}")
+                agents['gemini'] = None
+        else:
+            agents['gemini'] = None
+            logger.info("⚠️ No Google API key found")
+
+        # X.AI Agent (Secondary - Paid)
         if settings.XAI_API_KEY:
             try:
                 xai_model = OpenAIChatModel(
@@ -56,7 +74,7 @@ class FallbackAgent:
             agents['xai'] = None
             logger.info("⚠️ No X.AI API key found")
 
-        # OpenAI Agent (Secondary)
+        # OpenAI Agent (Fallback #1 - Paid)
         if settings.OPENAI_API_KEY:
             try:
                 agents['openai'] = Agent(
@@ -71,7 +89,7 @@ class FallbackAgent:
             agents['openai'] = None
             logger.info("⚠️ No OpenAI API key found")
 
-        # Anthropic Agent (Fallback #2)
+        # Anthropic Agent (Fallback #2 - Paid)
         if settings.ANTHROPIC_API_KEY:
             try:
                 agents['anthropic'] = Agent(
@@ -91,9 +109,9 @@ class FallbackAgent:
     async def run_async(self, user_input: str, message_history: Optional[list] = None) -> str:
         """
         Run the query through available agents with fallback.
-        Tries X.AI (Grok-3) -> OpenAI -> Anthropic in order.
+        Tries Gemini (FREE) -> X.AI (Grok) -> OpenAI -> Anthropic in order.
         """
-        providers = ['xai', 'openai', 'anthropic']
+        providers = ['gemini', 'xai', 'openai', 'anthropic']
 
         for provider in providers:
             agent = self.agents.get(provider)

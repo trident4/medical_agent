@@ -131,7 +131,6 @@ async def ask_question_endpoint(
             # Get recent data for general questions
             patients = await patient_service.get_patients(skip=0, limit=50)
             visits = await visit_service.get_visits(skip=0, limit=100)
-        print("The patients and visits fetched are:", patients, visits)
         # Generate answer using AI fallback system (X.AI -> OpenAI -> Anthropic)
         qa_result = await medical_qa_agent.answer_question(
             question=request.question,

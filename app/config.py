@@ -31,12 +31,19 @@ class Settings(BaseSettings):
     ADMIN_EMAIL: str = os.getenv("ADMIN_EMAIL")
     ADMIN_FULLNAME: str = os.getenv("ADMIN_FULLNAME")
 
-    # Database
-    POSTGRES_USER: str = os.getenv("POSTGRES_USER")
-    POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD")
-    POSTGRES_HOST: str = os.getenv("POSTGRES_HOST")
-    POSTGRES_PORT: str = os.getenv("POSTGRES_PORT")
-    POSTGRES_DB: str = os.getenv("POSTGRES_DB")
+    # Database - PostgreSQL (legacy, optional)
+    POSTGRES_USER: str | None = os.getenv("POSTGRES_USER")
+    POSTGRES_PASSWORD: str | None = os.getenv("POSTGRES_PASSWORD")
+    POSTGRES_HOST: str | None = os.getenv("POSTGRES_HOST")
+    POSTGRES_PORT: str | None = os.getenv("POSTGRES_PORT")
+    POSTGRES_DB: str | None = os.getenv("POSTGRES_DB")
+    
+    # Database - MySQL (for PythonAnywhere)
+    MYSQL_HOST: str | None = os.getenv("MYSQL_HOST")
+    MYSQL_PORT: str | None = os.getenv("MYSQL_PORT")
+    MYSQL_DATABASE: str | None = os.getenv("MYSQL_DATABASE")
+    MYSQL_USER: str | None = os.getenv("MYSQL_USER")
+    MYSQL_PASSWORD: str | None = os.getenv("MYSQL_PASSWORD")
     
     DATABASE_URL: str = os.getenv("DATABASE_URL")
     TEST_DATABASE_URL: str = os.getenv("TEST_DATABASE_URL")
@@ -47,19 +54,28 @@ class Settings(BaseSettings):
         if isinstance(v, str) and v:
             return v
         
-        # Construct URL from components
-        # We need to access values from the instance being validated, but since this is a 
-        # class method validator with mode='before', we rely on environment variables 
-        # or defaults defined above if we were using model_validator.
-        # However, for simplicity and correctness with Pydantic v2, let's use a model_validator
-        # or just construct it here using os.getenv since we're in Settings
-        user = os.getenv("POSTGRES_USER")
-        password = os.getenv("POSTGRES_PASSWORD")
-        host = os.getenv("POSTGRES_HOST")
-        port = os.getenv("POSTGRES_PORT")
-        db = os.getenv("POSTGRES_DB")
+        # Try MySQL first (for PythonAnywhere deployment)
+        mysql_user = os.getenv("MYSQL_USER")
+        mysql_password = os.getenv("MYSQL_PASSWORD")
+        mysql_host = os.getenv("MYSQL_HOST")
+        mysql_port = os.getenv("MYSQL_PORT")
+        mysql_db = os.getenv("MYSQL_DATABASE")
         
-        return f"postgresql://{user}:{password}@{host}:{port}/{db}"
+        if all([mysql_user, mysql_password, mysql_host, mysql_port, mysql_db]):
+            return f"mysql://{mysql_user}:{mysql_password}@{mysql_host}:{mysql_port}/{mysql_db}"
+        
+        # Fall back to PostgreSQL
+        pg_user = os.getenv("POSTGRES_USER")
+        pg_password = os.getenv("POSTGRES_PASSWORD")
+        pg_host = os.getenv("POSTGRES_HOST")
+        pg_port = os.getenv("POSTGRES_PORT")
+        pg_db = os.getenv("POSTGRES_DB")
+        
+        if all([pg_user, pg_password, pg_host, pg_port, pg_db]):
+            return f"postgresql://{pg_user}:{pg_password}@{pg_host}:{pg_port}/{pg_db}"
+        
+        raise ValueError("DATABASE_URL not set and unable to construct from components")
+    
     TEST_DATABASE_URL: str = os.getenv("TEST_DATABASE_URL")
 
     # Security
@@ -72,6 +88,7 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
     XAI_API_KEY: str = os.getenv("XAI_API_KEY", "")
     ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
+    GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")
 
     # CORS
     BACKEND_CORS_ORIGINS: List[str] = [
