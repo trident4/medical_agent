@@ -3,7 +3,7 @@ API v1 router initialization.
 """
 
 from fastapi import APIRouter
-from .endpoints import patients, visits, agents, auth, users
+from .endpoints import patients, visits, agents, auth, users, analytics
 
 api_router = APIRouter()
 
@@ -15,3 +15,8 @@ api_router.include_router(
 api_router.include_router(visits.router, prefix="/visits", tags=["visits"])
 api_router.include_router(agents.router, prefix="/agents", tags=["ai-agents"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
+api_router.include_router(
+    analytics.router,
+    prefix="/analytics",
+    tags=["analytics"]
+)
