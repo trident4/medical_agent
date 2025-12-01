@@ -55,6 +55,16 @@ Now generate SQL for the user's question.
         
         self.ai_agent = FallbackAgent(system_prompt)
         
+        # Explainer agent (for natural language summaries)
+        explanation_system_prompt = """
+You are a helpful medical data analyst. 
+Your job is to explain data results in simple, natural language.
+Don't mention SQL or technical details. 
+Focus on the insights and numbers.
+Keep it brief (2-3 sentences).
+"""
+        self.explainer_agent = FallbackAgent(explanation_system_prompt)
+        
         # Statistics tracking
         self.stats = {
             'total_queries': 0,
@@ -174,16 +184,23 @@ TABLES:
         response = re.sub(r'```\n?', '', response)
         
         # Remove common prefixes
-        response = re.sub(r'^(SQL:|Query:)\s*', '', response, flags=re.IGNORECASE)
+        response = re.sub(r'^(SQL:|Query:)\s*', '', response, flags=re.IGNORECASE | re.MULTILINE)
         
-        # Take first statement
-        sql = response.strip().split('\n')[0]
+        # Clean up the response
+        response = response.strip()
         
-        # Ensure semicolon
-        if not sql.endswith(';'):
-            sql += ';'
+        # If there's a semicolon, take everything up to and including the first semicolon
+        # This handles multi-line SQL queries properly
+        if ';' in response:
+            sql = response.split(';')[0] + ';'
+        else:
+            # If no semicolon, take the entire response and add one
+            sql = response + ';'
         
-        return sql
+        # Remove any trailing explanations after the semicolon
+        sql = sql.split('\n\n')[0]  # Stop at double newline (explanation separator)
+        
+        return sql.strip()
     
     def _is_safe_query(self, sql: str) -> bool:
         """Validate SQL is read-only"""
@@ -254,7 +271,7 @@ Total Rows: {len(results)}
 Provide a 2-3 sentence summary.
 """
         
-        explanation = await self.ai_agent.run_async(explanation_prompt)
+        explanation = await self.explainer_agent.run_async(explanation_prompt)
         return explanation.strip()
     
     def get_stats(self) -> dict:
@@ -273,17 +290,29 @@ Provide a 2-3 sentence summary.
         }
     
     def get_example_questions(self) -> List[str]:
-        """Get example questions"""
+        """Get example questions - mix of templated (fast) and AI-generated (complex)"""
         return [
+            # Templated queries (FREE, instant)
             "How many visits were made in the last 30 days?",
             "What is the average duration of visits?",
             "Which patient has the most visits?",
-            "How many urgent visits vs routine visits?",
             "What's the average heart rate across all visits?",
             "Show patients who haven't visited in 60 days",
             "What are the most common diagnoses?",
             "How many patients do we have?",
-            "Show visit trends by month"
+            "Show visit trends by month",
+            
+            # AI-generated queries (complex analysis)
+            "Which patients have diabetes?",
+            "Show me patients with penicillin allergies",
+            "What's the average age of patients?",
+            "Show the distribution of patients by gender",
+            "Which day of the week has the most visits?",
+            "Show visits in the last 7 days",
+            "Show patients with temperature above 100°F",
+            "Find visits mentioning 'headache' in symptoms",
+            "Show patient names with their latest visit date",
+            "What percentage of visits are urgent?"
         ]
 
 # Global instance
