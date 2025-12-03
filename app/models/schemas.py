@@ -10,7 +10,7 @@ from datetime import datetime
 class SummarizeVisitRequest(BaseModel):
     """Request schema for visit summarization."""
 
-    visit_id: str = Field(..., description="Visit ID to summarize")
+    id: int = Field(..., description="Visit ID to summarize")
     include_patient_history: bool = Field(
         default=False, description="Include patient medical history")
     summary_type: str = Field(
