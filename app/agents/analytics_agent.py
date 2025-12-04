@@ -170,6 +170,86 @@ TABLES:
                 "question": question
             }
     
+    async def answer_analytics_question_stream(
+        self,
+        question: str,
+        db: AsyncSession
+    ):
+        """
+        Stream analytics answer. Returns:
+        1. Query metadata (non-streamed): question, SQL, results, row_count
+        2. Explanation (streamed): natural language summary
+        
+        Yields explanation chunks for streaming to client
+        """
+        self.stats['total_queries'] += 1
+        sql_source = None
+        
+        try:
+            # Steps 1-3: Get SQL query (same as non-streaming)
+            sql_query = self.cache.get(question)
+            if sql_query:
+                sql_source = "cache"
+                self.stats['cache_hits'] += 1
+            
+            if not sql_query:
+                sql_query = self.templates.match(question)
+                if sql_query:
+                    sql_source = "template"
+                    self.stats['template_matches'] += 1
+                    self.cache.set(question, sql_query)
+            
+            if not sql_query:
+                sql_query = await self._generate_sql_with_ai(question)
+                sql_source = "ai"
+                self.stats['ai_generations'] += 1
+                self.cache.set(question, sql_query)
+            
+            # Validate & execute
+            if not self._is_safe_query(sql_query):
+                yield json.dumps({
+                    "type": "error",
+                    "error": "Generated query is not safe"
+                })
+                return
+            
+            results = await self._execute_query(sql_query, db)
+            formatted_results = self._format_results(results)
+            
+            # Yield metadata first (non-streamed, sent as one chunk)
+            metadata = {
+                "type": "metadata",
+                "question": question,
+                "sql_query": sql_query,
+                "results": formatted_results,
+                "row_count": len(formatted_results) if formatted_results else 0,
+                "source": sql_source
+            }
+            yield json.dumps(metadata)
+            
+            # Stream explanation if we have results
+            if formatted_results:
+                explanation_prompt = f"""
+Given this analytics question and results, provide a concise summary.
+
+Question: {question}
+Results: {json.dumps(formatted_results[:5])}
+Total Rows: {len(formatted_results)}
+
+Provide a 2-3 sentence summary.
+"""
+                
+                # Stream the explanation
+                async for chunk in self.explainer_agent.run_stream(explanation_prompt):
+                    yield chunk
+            
+        except Exception as e:
+            logger.error(f"Error in streaming analytics: {e}")
+            yield json.dumps({
+                "type": "error",
+                "error": str(e)
+            })
+    
     async def _generate_sql_with_ai(self, question: str) -> str:
         """Generate SQL using AI (fallback option)"""
         prompt = f"Question: {question}\nSQL:"
