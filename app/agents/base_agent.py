@@ -153,6 +153,81 @@ class FallbackAgent:
         logger.error(error_msg)
         raise Exception(error_msg)
 
+    async def run_stream(self, user_input: str, message_history: Optional[list] = None):
+        """
+        Run the query through available agents with fallback, yielding chunks.
+        Tries Gemini (FREE) -> X.AI (Grok) -> OpenAI -> Anthropic in order.
+        
+        Yields:
+            Text chunks from the AI response
+        """
+        providers = ['gemini', 'xai', 'openai', 'anthropic']
+        for provider in providers:
+            agent = self.agents.get(provider)
+            if agent is None:
+                logger.debug(f"Skipping {provider} - agent not available")
+                continue
+
+            try:
+                logger.info(f"🤖 Trying {provider.upper()} agent (streaming)...")
+
+                # Use PydanticAI agent streaming
+                async with agent.run_stream(user_input) as result:
+                    logger.info(f"✅ {provider.upper()} agent streaming started")
+                    
+                    # PydanticAI v0.0.24+ uses .stream() method to get the iterator
+                    # or sometimes the result itself is iterable. 
+                    # The error 'got StreamedRunResult' suggests we need to call .stream()
+                    # or iterate over result.stream_text() / result.stream()
+                    
+                    # Try standard PydanticAI streaming pattern
+                    stream_iter = result.stream() if hasattr(result, 'stream') else result
+                    
+                    last_text = ""
+                    
+                    async for chunk in stream_iter:
+                        current_text = ""
+                        delta = None
+                        
+                        # Handle different PydanticAI chunk formats
+                        if hasattr(chunk, 'delta'):
+                            # Best case: we have the delta directly
+                            delta = chunk.delta
+                        elif hasattr(chunk, 'data'):
+                            current_text = str(chunk.data)
+                        elif hasattr(chunk, 'content'):
+                            current_text = chunk.content
+                        elif hasattr(chunk, 'text'):
+                            current_text = chunk.text
+                        elif isinstance(chunk, str):
+                            current_text = chunk
+                        else:
+                            current_text = str(chunk)
+                        
+                        # If we didn't get a delta but got full text, calculate delta
+                        if delta is None and current_text:
+                            if current_text.startswith(last_text):
+                                delta = current_text[len(last_text):]
+                            else:
+                                # Text changed completely or didn't append (unlikely for streaming)
+                                delta = current_text
+                            last_text = current_text
+                        
+                        if delta:
+                            yield delta
+                    
+                    logger.info(f"✅ {provider.upper()} agent streaming completed")
+                    return  # Successfully streamed, exit
+
+            except Exception as e:
+                logger.warning(f"❌ {provider.upper()} agent streaming failed: {e}")
+                continue
+
+        # If all agents fail
+        error_msg = "All AI providers failed. Please check your API keys and try again."
+        logger.error(error_msg)
+        raise Exception(error_msg)
+
     def run_sync(self, user_input: str, message_history: Optional[list] = None) -> str:
         """
         Synchronous version - use async version with asyncio for simplicity.

@@ -76,8 +76,8 @@ class QueryTemplates:
             # Average vital sign
             'avg_vital_sign': {
                 'patterns': [
-                    r'average.*(?:heart rate|blood pressure|temperature|weight)',
-                    r'avg.*(?:hr|bp|temp)'
+                    r'average.*(heart rate|blood pressure|temperature|weight)',
+                    r'avg.*(hr|bp|temp)'
                 ],
                 'sql': "SELECT AVG(JSON_EXTRACT(vital_signs, '$.{field}')) as avg_{field} FROM visits WHERE vital_signs IS NOT NULL;",
                 'params': ['field'],
@@ -120,6 +120,52 @@ class QueryTemplates:
                          GROUP BY diagnosis 
                          ORDER BY count DESC 
                          LIMIT 10;""",
+                'params': []
+            },
+            
+            # Visit trends by month
+            'visit_trends_month': {
+                'patterns': [
+                    r'visit.*trends.*month',
+                    r'visits.*by month',
+                    r'monthly.*visit',
+                    r'visits.*per month'
+                ],
+                'sql': """SELECT 
+                         DATE_FORMAT(visit_date, '%Y-%m') as month,
+                         COUNT(*) as visit_count
+                         FROM visits
+                         GROUP BY month
+                         ORDER BY month DESC
+                         LIMIT 12;""",
+                'params': []
+            },
+            
+            # Visit trends by year
+            'visit_trends_year': {
+                'patterns': [
+                    r'visit.*trends.*year',
+                    r'visits.*by year',
+                    r'yearly.*visit',
+                    r'visits.*per year'
+                ],
+                'sql': """SELECT 
+                         YEAR(visit_date) as year,
+                         COUNT(*) as visit_count
+                         FROM visits
+                         GROUP BY year
+                         ORDER BY year DESC;""",
+                'params': []
+            },
+            
+            # Total visits
+            'total_visits': {
+                'patterns': [
+                    r'^how many.*total.*visits',
+                    r'^total.*visits',
+                    r'^count.*all.*visits'
+                ],
+                'sql': "SELECT COUNT(*) as total_visits FROM visits;",
                 'params': []
             }
         }

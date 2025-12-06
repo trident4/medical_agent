@@ -4,8 +4,10 @@ AI agents API endpoints for summarization and Q&A.
 
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database.session import get_db
+from app.utils.streaming_utils import stream_response
 from app.models.schemas import (
     SummarizeVisitRequest,
     SummarizeVisitResponse,
@@ -35,13 +37,12 @@ async def summarize_visit_endpoint(
     """
     Generate an AI-powered summary of a patient visit.
     """
-    print("Inside Summarizing visit...", db, request.visit_id)
     try:
         visit_service = VisitService(db)
         patient_service = PatientService(db)
 
         # Get visit information
-        visit = await visit_service.get_visit_by_visit_id(request.visit_id)
+        visit = await visit_service.get_visit_by_visit_id(request.id)
         if not visit:
             raise HTTPException(
                 status_code=404,
@@ -57,7 +58,6 @@ async def summarize_visit_endpoint(
             previous_visits = await patient_service.get_patient_visits(
                 patient.patient_id, skip=0, limit=10
             )
-        print("The visit fetched is:", visit, patient, previous_visits)
 
         # Generate summary using AI fallback system (X.AI -> OpenAI -> Anthropic)
         summary_result = await visit_summarizer.summarize_visit(
@@ -69,13 +69,13 @@ async def summarize_visit_endpoint(
         background_tasks.add_task(
             logger.info,
             "Visit summarized",
-            visit_id=request.visit_id,
+            visit_id=request.id,
             summary_type=request.summary_type,
             include_history=request.include_patient_history
         )
 
         return SummarizeVisitResponse(
-            visit_id=request.visit_id,
+            visit_id=summary_result.visit_id,
             summary=summary_result,  # fallback agent returns string
             key_points=["AI-generated summary using fallback system"],
             recommendations=["Generated via X.AI/OpenAI/Anthropic fallback"],
@@ -86,7 +86,7 @@ async def summarize_visit_endpoint(
 
     except Exception as e:
         logger.error("Error summarizing visit",
-                     visit_id=request.visit_id, error=str(e))
+                     visit_id=request.id, error=str(e))
         raise HTTPException(
             status_code=500,
             detail=f"Error generating visit summary: {str(e)}"
@@ -297,3 +297,143 @@ async def compare_visits_endpoint(
             status_code=500,
             detail=f"Error comparing visits: {str(e)}"
         )
+
+
+@router.post("/summarize/stream")
+async def summarize_visit_stream_endpoint(
+    request: SummarizeVisitRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Stream an AI-powered summary of a patient visit in real-time.
+    Uses Server-Sent Events (SSE) for progressive response delivery.
+    """
+    async def generate_stream():
+        try:
+            visit_service = VisitService(db)
+            patient_service = PatientService(db)
+
+            # Get visit information
+            visit = await visit_service.get_visit_by_id(request.id)
+            if not visit:
+                yield f"data: {{\"type\": \"error\", \"error\": \"Visit with ID {request.id} not found\"}}\n\n"
+                return
+
+            # Get patient information if requested
+            patient = None
+            if request.include_patient_history:
+                patient = await patient_service.get_patient_by_id(visit.patient_id)
+
+            # Stream summary using AI fallback system
+            content_stream = visit_summarizer.summarize_visit_stream(
+                visit=visit,
+                patient=patient
+            )
+
+            # Wrap with SSE formatting
+            async for sse_message in stream_response(content_stream):
+                yield sse_message
+
+            # Log the summarization request
+            background_tasks.add_task(
+                logger.info,
+                "Visit summarized (streaming)",
+                visit_id=request.id,
+                summary_type=request.summary_type,
+                include_history=request.include_patient_history
+            )
+
+        except Exception as e:
+            logger.error("Error streaming visit summary",
+                         visit_id=request.id, error=str(e))
+            yield f"data: {{\"type\": \"error\", \"error\": \"{str(e)}\"}}\n\n"
+
+    return StreamingResponse(
+        generate_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"  # Disable nginx buffering
+        }
+    )
+
+
+@router.post("/ask/stream")
+async def ask_question_stream_endpoint(
+    request: QuestionAnswerRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Stream AI-powered answers to questions about patient data in real-time.
+    Uses Server-Sent Events (SSE) for progressive response delivery.
+    """
+    async def generate_stream():
+        try:
+            visit_service = VisitService(db)
+            patient_service = PatientService(db)
+
+            patients = []
+            visits = []
+
+            # Get relevant data based on context
+            if request.patient_id:
+                patient = await patient_service.get_patient_by_id(request.patient_id)
+                if patient:
+                    patients = [patient]
+                    visits = await patient_service.get_patient_visits(request.patient_id)
+
+            if request.visit_id:
+                visit = await visit_service.get_visit_by_id(request.visit_id)
+                if visit:
+                    visits = [visit]
+                    if not patients:
+                        patient = await patient_service.get_patient_by_id(visit.patient_id)
+                        if patient:
+                            patients = [patient]
+
+            if not request.patient_id and not request.visit_id and request.context_type == "all":
+                # Get recent data for general questions
+                patients = await patient_service.get_patients(skip=0, limit=50)
+                visits = await visit_service.get_visits(skip=0, limit=100)
+
+            # Stream answer using AI fallback system
+            content_stream = medical_qa_agent.answer_question_stream(
+                question=request.question,
+                patient_id=request.patient_id,
+                visit_id=request.visit_id,
+                patients=patients,
+                visits=visits
+            )
+
+            # Wrap with SSE formatting
+            async for sse_message in stream_response(content_stream):
+                yield sse_message
+
+            # Log the Q&A request
+            background_tasks.add_task(
+                logger.info,
+                "Question answered (streaming)",
+                question=request.question,
+                patient_id=request.patient_id,
+                visit_id=request.visit_id,
+                context_type=request.context_type
+            )
+
+        except Exception as e:
+            logger.error("Error streaming answer",
+                         question=request.question, error=str(e))
+            yield f"data: {{\"type\": \"error\", \"error\": \"{str(e)}\"}}\n\n"
+
+    return StreamingResponse(
+        generate_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"  # Disable nginx buffering
+        }
+    )
+

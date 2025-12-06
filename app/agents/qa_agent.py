@@ -48,18 +48,49 @@ class MedicalQAAgent:
         Guidelines:
         - Only use information provided in the context
         - Be precise and evidence-based in your responses
-        - Cite specific visits, dates, and findings when relevant
+        - Cite specific visits and dates at the beginning of each section, not after every line
         - Use appropriate medical terminology
         - Indicate confidence level in your answers (0.0-1.0)
         - Suggest follow-up questions or actions when appropriate
         - Never make diagnoses or treatment recommendations beyond what's documented
         - Always maintain patient privacy and confidentiality
         
-        Always structure your response with:
+        Always provide your response as a plain text string using Markdown formatting.
+        DO NOT return JSON.
+        
+        Data Visualization:
+        - When asked to visualize data, use pie charts for distributions only
+        - For all other data (trends, comparisons, timelines), use well-formatted Markdown tables
+        
+        Example Pie Chart:
+        ```mermaid
+        pie title Visit Type Distribution
+            "Routine" : 45
+            "Follow-up" : 30
+            "Urgent" : 25
+        ```
+        
+        Example Table for Trends:
+        | Date | Weight (lbs) | Trend |
+        |------|--------------|-------|
+        | Jul 28 | 135 | — |
+        | Aug 27 | 135 | ➡️ |
+        | Sep 26 | 134 | ⬇️ |
+        
+        IMPORTANT:
+        - Use pie charts ONLY when showing distributions (percentages, category counts)
+        - For bar charts, line charts, or any other visualization requests, use tables with emoji indicators
+        - Do not apologize for using tables instead of other chart types
+        - When including a Mermaid chart, put any explanatory text BEFORE the chart, not after
+        - Mermaid code blocks must be complete and not interrupted by other text
+        
+        Structure your response with:
         - Clear, direct answer to the question
         - Specific sources and references
         - Confidence assessment
         - Context clarification
+        - Use Markdown tables for any structured data (vital signs, lab results, etc.)
+        - Use Mermaid diagrams when visualization would enhance understanding
         """
 
         self.agent = FallbackAgent(system_prompt)
@@ -139,6 +170,7 @@ class MedicalQAAgent:
                 context_parts.append(f"  Chief Complaint: {chief_complaint}")
                 context_parts.append(f"  Diagnosis: {diagnosis}")
                 context_parts.append(f"  Treatment: {treatment_plan}")
+                # context_parts.append(f"  Duration: {visit.duration_minutes} minutes")
 
                 # Add formatted vital signs table if available
                 if vital_signs:
@@ -166,11 +198,14 @@ class MedicalQAAgent:
                     context_parts.append(f"  Notes: {doctor_notes}")
 
         context_parts.append(
-            "\nPlease answer the question based on the provided medical data. "
-            "When vital signs or lab results are provided in table format, include them in your response. "
-            "The tables use Markdown format which will be rendered properly. "
-            "Be specific about which information you're referencing and provide appropriate sources.")
+    "\nPlease answer the question based on the provided medical data. "
+    "IMPORTANT: When vital signs or lab results are provided as Markdown tables in the context above, "
+    "you MUST reproduce those exact tables in your response. Do not summarize table data into sentences. "
+    "Copy the table format exactly as shown. "
+        "Cite the visit date once at the beginning of your answer, not after every line. "
 
+    "Be specific about which information you're referencing and provide appropriate sources."
+)
         full_prompt = "\n".join(context_parts)
 
         try:
@@ -182,6 +217,107 @@ class MedicalQAAgent:
         except Exception as e:
             logger.error(f"Error in QA agent: {e}")
             return f"I apologize, but I encountered an error while processing your question. Please try again or contact support. Error: {str(e)}"
+
+    async def answer_question_stream(
+        self,
+        question: str,
+        patient_id: Optional[str] = None,
+        visit_id: Optional[str] = None,
+        patients: Optional[List[PatientResponse]] = None,
+        visits: Optional[List[VisitResponse]] = None
+    ):
+        """
+        Stream answer to a question about patient data using AI.
+
+        Args:
+            question: The question to answer
+            patient_id: Optional patient ID for context
+            visit_id: Optional visit ID for context
+            patients: List of patient data for context
+            visits: List of visit data for context
+
+        Yields:
+            Text chunks of the AI-generated answer
+        """
+        # Build context information (same as non-streaming version)
+        context_parts = [f"Question: {question}"]
+
+        def safe_get_attr(obj, attr_name, default="Unknown"):
+            """Safely get attribute from either dict or object."""
+            if hasattr(obj, attr_name):
+                return getattr(obj, attr_name, default)
+            elif isinstance(obj, dict):
+                return obj.get(attr_name, default)
+            else:
+                return default
+
+        if patients:
+            context_parts.append("Patient Information:")
+            for patient in patients[:5]:
+                first_name = safe_get_attr(patient, 'first_name')
+                last_name = safe_get_attr(patient, 'last_name')
+                date_of_birth = safe_get_attr(patient, 'date_of_birth')
+                medical_history = safe_get_attr(patient, 'medical_history', None)
+                allergies = safe_get_attr(patient, 'allergies', None)
+                current_medications = safe_get_attr(patient, 'current_medications', None)
+
+                context_parts.append(f"- Patient {first_name} {last_name} (DOB: {date_of_birth})")
+                if medical_history:
+                    context_parts.append(f"  Medical History: {medical_history}")
+                if allergies:
+                    context_parts.append(f"  Allergies: {allergies}")
+                if current_medications:
+                    context_parts.append(f"  Current Medications: {current_medications}")
+
+        if visits:
+            context_parts.append("Visit Information:")
+            for visit in visits[:10]:
+                visit_date = safe_get_attr(visit, 'visit_date')
+                visit_type = safe_get_attr(visit, 'visit_type')
+                chief_complaint = safe_get_attr(visit, 'chief_complaint', 'N/A')
+                diagnosis = safe_get_attr(visit, 'diagnosis', 'N/A')
+                treatment_plan = safe_get_attr(visit, 'treatment_plan', 'N/A')
+                vital_signs = safe_get_attr(visit, 'vital_signs', None)
+                lab_results = safe_get_attr(visit, 'lab_results', None)
+                doctor_notes = safe_get_attr(visit, 'doctor_notes', None)
+                duration_minutes = safe_get_attr(visit, 'duration_minutes', None)
+
+                context_parts.append(f"- Visit {visit_date} ({visit_type})")
+                context_parts.append(f"  Chief Complaint: {chief_complaint}")
+                context_parts.append(f"  Diagnosis: {diagnosis}")
+                context_parts.append(f"  Treatment: {treatment_plan}")
+
+                if vital_signs:
+                    from app.services.formatting_service import medical_formatter
+                    vital_signs_table = medical_formatter.format_vital_signs_markdown(vital_signs)
+                    context_parts.append(f"  {vital_signs_table}")
+
+                if lab_results:
+                    from app.services.formatting_service import medical_formatter
+                    lab_results_table = medical_formatter.format_lab_results_markdown(lab_results)
+                    context_parts.append(f"  {lab_results_table}")
+
+                if doctor_notes:
+                    context_parts.append(f"  Notes: {doctor_notes}")
+
+                if duration_minutes:
+                    context_parts.append(f"  Duration: {duration_minutes} minutes")
+
+        context_parts.append(
+            "\nPlease answer the question based on the provided medical data. "
+            "Be specific about which information you're referencing and provide appropriate sources.")
+
+        full_prompt = "\n".join(context_parts)
+
+        try:
+            # Stream the response using the fallback agent
+            async for chunk in self.agent.run_stream(full_prompt):
+                yield chunk
+            
+            logger.info(f"QA Agent successfully streamed answer about patient {patient_id}")
+        except Exception as e:
+            logger.error(f"Error in QA agent streaming: {e}")
+            yield f"I apologize, but I encountered an error while processing your question. Error: {str(e)}"
 
     def get_agent_status(self) -> dict:
         """Get the status of all available AI providers."""

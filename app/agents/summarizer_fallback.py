@@ -122,6 +122,82 @@ class VisitSummarizerAgent:
             logger.error(f"❌ Visit summarization failed: {e}")
             raise Exception(f"Visit summarization failed: {str(e)}")
 
+    async def summarize_visit_stream(
+        self,
+        visit: VisitResponse,
+        patient: Optional[PatientResponse] = None
+    ):
+        """
+        Stream a visit summary in real-time.
+
+        Args:
+            visit: The visit to summarize
+            patient: Optional patient information for context
+
+        Yields:
+            Text chunks of the AI-generated visit summary
+        """
+        try:
+            # Prepare visit information (same as non-streaming version)
+            visit_info = f"""
+            Visit Information:
+            - Visit ID: {visit.id}
+            - Date: {visit.visit_date}
+            - Type: {visit.visit_type}
+            - Chief Complaint: {visit.chief_complaint}
+            - Diagnosis: {visit.diagnosis}
+            """
+
+            if visit.treatment_plan:
+                visit_info += f"- Treatment Plan: {visit.treatment_plan}\n"
+
+            if visit.doctor_notes:
+                visit_info += f"- Clinical Notes: {visit.doctor_notes}\n"
+
+            # Add patient context if available
+            patient_info = ""
+            if patient:
+                patient_info = f"""
+                Patient Information:
+                - Name: {patient.first_name} {patient.last_name}
+                - ID: {patient.id}
+                - DOB: {patient.date_of_birth}
+                - Gender: {patient.gender}
+                """
+                if patient.medical_history:
+                    patient_info += f"- Medical History: {patient.medical_history}\n"
+                if patient.emergency_contact:
+                    patient_info += f"- Emergency Contact: {patient.emergency_contact}\n"
+
+            full_input = f"""
+            {patient_info}
+            
+            {visit_info}
+            
+            Please create a comprehensive medical visit summary that would be useful for:
+            1. Other healthcare providers reviewing this case
+            2. Insurance documentation
+            3. Medical record continuity
+            4. Follow-up planning
+            
+            Format the summary professionally and include all relevant clinical details.
+            """
+
+            # Get available providers for logging
+            available_providers = self.agent.get_available_providers()
+            logger.info(
+                f"Available AI providers for streaming summarization: {available_providers}")
+
+            # Stream the response with fallback
+            async for chunk in self.agent.run_stream(full_input):
+                yield chunk
+
+            logger.info("✅ Visit summarization streaming completed successfully")
+
+        except Exception as e:
+            logger.error(f"❌ Visit summarization streaming failed: {e}")
+            raise Exception(f"Visit summarization streaming failed: {str(e)}")
+
     async def summarize_patient_history(
         self,
         patient: PatientResponse,
