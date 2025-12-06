@@ -79,6 +79,140 @@ async def stream_response(
         })
 
 
+async def stream_response_with_mermaid_buffering(
+    content_generator: AsyncGenerator[str, None],
+    include_metadata: bool = True
+) -> AsyncGenerator[str, None]:
+    """
+    Stream AI response with Mermaid chart buffering.
+    
+    Buffers Mermaid code blocks completely before sending to prevent
+    frontend rendering errors from incomplete charts.
+    
+    Args:
+        content_generator: Async generator yielding content chunks
+        include_metadata: Whether to include metadata messages
+        
+    Yields:
+        SSE-formatted messages with buffered Mermaid charts
+    """
+    # Safety limits to prevent infinite buffering
+    MAX_MERMAID_BUFFER_SIZE = 3000  # characters
+    MAX_BUFFER_CHUNKS = 100  # max chunks to buffer
+    
+    try:
+        # Send start message
+        if include_metadata:
+            yield format_sse_message({
+                "type": "start",
+                "timestamp": asyncio.get_event_loop().time()
+            })
+        
+        # Buffering state
+        in_mermaid_block = False
+        mermaid_buffer = ""
+        buffer_chunk_count = 0
+        total_chunk_count = 0
+        
+        async for chunk in content_generator:
+            total_chunk_count += 1
+            
+            # Detect start of Mermaid block
+            if "```mermaid" in chunk and not in_mermaid_block:
+                in_mermaid_block = True
+                mermaid_buffer = chunk
+                buffer_chunk_count = 1
+                logger.debug("Started buffering Mermaid chart")
+                continue
+            
+            # If we're in a Mermaid block
+            if in_mermaid_block:
+                mermaid_buffer += chunk
+                buffer_chunk_count += 1
+                
+                # Safety check: buffer too large
+                if len(mermaid_buffer) > MAX_MERMAID_BUFFER_SIZE:
+                    logger.warning(f"Mermaid buffer exceeded size limit ({len(mermaid_buffer)} chars), flushing")
+                    yield format_sse_message({
+                        "type": "chunk",
+                        "content": mermaid_buffer,
+                        "chunk_id": total_chunk_count,
+                        "done": False,
+                        "warning": "Large Mermaid block"
+                    })
+                    in_mermaid_block = False
+                    mermaid_buffer = ""
+                    buffer_chunk_count = 0
+                    continue
+                
+                # Safety check: buffering too many chunks
+                if buffer_chunk_count > MAX_BUFFER_CHUNKS:
+                    logger.warning(f"Mermaid buffer exceeded chunk limit ({buffer_chunk_count} chunks), flushing")
+                    yield format_sse_message({
+                        "type": "chunk",
+                        "content": mermaid_buffer,
+                        "chunk_id": total_chunk_count,
+                        "done": False,
+                        "warning": "Incomplete Mermaid block"
+                    })
+                    in_mermaid_block = False
+                    mermaid_buffer = ""
+                    buffer_chunk_count = 0
+                    continue
+                
+                # Check if Mermaid block is complete
+                # Look for closing ``` that's not part of ```mermaid
+                if "```" in chunk and chunk.strip() != "```mermaid":
+                    # Complete Mermaid block - send it all at once
+                    logger.debug(f"Completed Mermaid chart ({len(mermaid_buffer)} chars, {buffer_chunk_count} chunks)")
+                    yield format_sse_message({
+                        "type": "chunk",
+                        "content": mermaid_buffer,
+                        "chunk_id": total_chunk_count,
+                        "done": False
+                    })
+                    in_mermaid_block = False
+                    mermaid_buffer = ""
+                    buffer_chunk_count = 0
+                continue
+            
+            # Not in Mermaid block - stream normally
+            yield format_sse_message({
+                "type": "chunk",
+                "content": chunk,
+                "chunk_id": total_chunk_count,
+                "done": False
+            })
+        
+        # End of stream - flush any remaining Mermaid buffer
+        if in_mermaid_block and mermaid_buffer:
+            logger.warning("Stream ended with incomplete Mermaid block, flushing")
+            yield format_sse_message({
+                "type": "chunk",
+                "content": mermaid_buffer,
+                "chunk_id": total_chunk_count + 1,
+                "done": False,
+                "warning": "Incomplete Mermaid block at end of stream"
+            })
+        
+        # Send completion message
+        yield format_sse_message({
+            "type": "done",
+            "content": "",
+            "total_chunks": total_chunk_count,
+            "done": True
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in stream_response_with_mermaid_buffering: {e}")
+        # Send error message
+        yield format_sse_message({
+            "type": "error",
+            "error": str(e),
+            "done": True
+        })
+
+
 async def stream_ai_response(
     agent_stream,
     extract_text: bool = True
