@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database.session import get_db
-from app.utils.streaming_utils import stream_response
+from app.utils.streaming_utils import stream_response, stream_response_with_mermaid_buffering
 from app.models.schemas import (
     SummarizeVisitRequest,
     SummarizeVisitResponse,
@@ -331,17 +331,14 @@ async def summarize_visit_stream_endpoint(
                 patient=patient
             )
 
-            # Wrap with SSE formatting
-            async for sse_message in stream_response(content_stream):
+            # Wrap with SSE formatting (with Mermaid buffering)
+            async for sse_message in stream_response_with_mermaid_buffering(content_stream):
                 yield sse_message
 
             # Log the summarization request
             background_tasks.add_task(
                 logger.info,
-                "Visit summarized (streaming)",
-                visit_id=request.id,
-                summary_type=request.summary_type,
-                include_history=request.include_patient_history
+                f"Visit summarized (streaming): visit_id={request.id}, type={request.summary_type}, include_history={request.include_patient_history}"
             )
 
         except Exception as e:
@@ -408,18 +405,14 @@ async def ask_question_stream_endpoint(
                 visits=visits
             )
 
-            # Wrap with SSE formatting
-            async for sse_message in stream_response(content_stream):
+            # Wrap with SSE formatting (with Mermaid buffering)
+            async for sse_message in stream_response_with_mermaid_buffering(content_stream):
                 yield sse_message
 
             # Log the Q&A request
             background_tasks.add_task(
                 logger.info,
-                "Question answered (streaming)",
-                question=request.question,
-                patient_id=request.patient_id,
-                visit_id=request.visit_id,
-                context_type=request.context_type
+                f"Question answered (streaming): '{request.question}', patient_id={request.patient_id}, visit_id={request.visit_id}, context={request.context_type}"
             )
 
         except Exception as e:

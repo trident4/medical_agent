@@ -78,8 +78,7 @@ async def analytics_query_stream(
             # Log the query
             background_tasks.add_task(
                 logger.info,
-                "Analytics query answered (streaming)",
-                question=query.question
+                f"Analytics query answered (streaming): {query.question}"
             )
         
         except Exception as e:

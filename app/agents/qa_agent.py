@@ -84,6 +84,13 @@ class MedicalQAAgent:
         - When including a Mermaid chart, put any explanatory text BEFORE the chart, not after
         - Mermaid code blocks must be complete and not interrupted by other text
         
+        CRITICAL Mermaid Syntax Rules:
+        - ALWAYS close Mermaid code blocks with ``` on a new line
+        - Double-check your Mermaid syntax before outputting
+        - Pie chart values must be numbers only (no units, no text)
+        - All pie chart labels must be in quotes
+        - If unsure about Mermaid syntax, use a table instead
+        
         Structure your response with:
         - Clear, direct answer to the question
         - Specific sources and references
