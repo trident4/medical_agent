@@ -9,6 +9,13 @@ tags: [Architecture, FastAPI, PydanticAI, AI Agents, Healthcare]
 
 The **Doctors Assistant** project aims to solve a critical problem in modern healthcare: administrative burnout. By providing an intelligent, AI-powered system that handles patient visit summarization, Q&A, and data management, we empower doctors to focus less on paperwork and more on their patients. This isn't just a CRUD app; it's a context-aware assistant that understands medical data.
 
+### Project Demo
+
+<video src="../assets/Medical Agent Demo.mov" controls="controls" style="max-width: 100%;">
+</video>
+
+[Watch the demo video](../assets/Medical%20Agent%20Demo.mov)
+
 ## The Tech Stack
 
 We chose a stack that prioritizes **type safety**, **speed**, and **reliability**.
@@ -44,5 +51,3 @@ Our biggest recent hurdle was moving from a local "it works on my machine" setup
 2.  **Environment Variable Wars:** Docker Compose and local `.env` files fought for control over the `DATABASE_URL`. We solved this by refactoring our config loader to build connection strings dynamically from individual components (`POSTGRES_USER`, `HOST`, etc.), ensuring the container always respects its isolated environment.
 
 ---
-
-_Next up: Integrating the voice-to-text pipeline for real-time consultation transcription._
