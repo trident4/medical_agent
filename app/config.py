@@ -37,14 +37,14 @@ class Settings(BaseSettings):
     POSTGRES_HOST: str | None = os.getenv("POSTGRES_HOST")
     POSTGRES_PORT: str | None = os.getenv("POSTGRES_PORT")
     POSTGRES_DB: str | None = os.getenv("POSTGRES_DB")
-    
+
     # Database - MySQL (for PythonAnywhere)
     MYSQL_HOST: str | None = os.getenv("MYSQL_HOST")
     MYSQL_PORT: str | None = os.getenv("MYSQL_PORT")
     MYSQL_DATABASE: str | None = os.getenv("MYSQL_DATABASE")
     MYSQL_USER: str | None = os.getenv("MYSQL_USER")
     MYSQL_PASSWORD: str | None = os.getenv("MYSQL_PASSWORD")
-    
+
     DATABASE_URL: str = os.getenv("DATABASE_URL")
     TEST_DATABASE_URL: str = os.getenv("TEST_DATABASE_URL")
 
@@ -53,35 +53,34 @@ class Settings(BaseSettings):
     def assemble_db_connection(cls, v: str | None, info) -> str:
         if isinstance(v, str) and v:
             return v
-        
+
         # Try MySQL first (for PythonAnywhere deployment)
         mysql_user = os.getenv("MYSQL_USER")
         mysql_password = os.getenv("MYSQL_PASSWORD")
         mysql_host = os.getenv("MYSQL_HOST")
         mysql_port = os.getenv("MYSQL_PORT")
         mysql_db = os.getenv("MYSQL_DATABASE")
-        
+
         if all([mysql_user, mysql_password, mysql_host, mysql_port, mysql_db]):
             return f"mysql://{mysql_user}:{mysql_password}@{mysql_host}:{mysql_port}/{mysql_db}"
-        
+
         # Fall back to PostgreSQL
         pg_user = os.getenv("POSTGRES_USER")
         pg_password = os.getenv("POSTGRES_PASSWORD")
         pg_host = os.getenv("POSTGRES_HOST")
         pg_port = os.getenv("POSTGRES_PORT")
         pg_db = os.getenv("POSTGRES_DB")
-        
+
         if all([pg_user, pg_password, pg_host, pg_port, pg_db]):
             return f"postgresql://{pg_user}:{pg_password}@{pg_host}:{pg_port}/{pg_db}"
-        
+
         raise ValueError("DATABASE_URL not set and unable to construct from components")
-    
+
     TEST_DATABASE_URL: str = os.getenv("TEST_DATABASE_URL")
 
     # Security
     SECRET_KEY: str = os.getenv("SECRET_KEY")
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(
-        os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 60))
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 60))
     ALGORITHM: str = os.getenv("ALGORITHM", "HS256")
 
     # AI Configuration
@@ -89,10 +88,13 @@ class Settings(BaseSettings):
     XAI_API_KEY: str = os.getenv("XAI_API_KEY", "")
     ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
     GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")
+    QWEN_API_KEY: str = os.getenv("QWEN_API_KEY", "")
+    QWEN_BASE_URL: str = os.getenv(
+        "QWEN_BASE_URL", "http://localhost:11434/v1"
+    )  # Ollama default
 
     # CORS
-    BACKEND_CORS_ORIGINS: List[str] = [
-        "http://localhost:3000", "http://localhost:8080"]
+    BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8080"]
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
@@ -107,7 +109,12 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     LOG_FORMAT: str = "json"
 
-    model_config = {"env_file": ".env", "case_sensitive": True}
+    # LangSmith (optional observability for LangGraph)
+    LANGCHAIN_TRACING_V2: bool = False
+    LANGCHAIN_API_KEY: str | None = os.getenv("LANGCHAIN_API_KEY")
+    LANGCHAIN_PROJECT: str = "doctors-assistant"
+
+    model_config = {"env_file": ".env", "case_sensitive": True, "extra": "ignore"}
 
 
 settings = Settings()
